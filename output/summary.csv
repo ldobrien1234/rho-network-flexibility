@@ -1,0 +1,10 @@
+set,regime,target_n,dC,dR,growth0,homog_stable,n_star,growth_star,turing,rho_interior_extrema,rho_min,rho_max,residual,note
+P1,P,1,0.1,10.0,-0.1342,true,1,0.0024,true,1,0.783,3.524,9.9e-9,primary Turing mode n=1 (random IC -> stationary mode 1)
+P2,P,2,0.015,10.0,-0.0059,true,2,0.0022,true,3,0.711,5.313,9.2e-9,primary Turing mode n=2 (random IC -> stationary mode 2)
+P3,P,3,0.003,10.0,-0.0312,true,3,0.0021,true,5,0.723,4.016,1.0e-8,primary Turing mode n=3 (random IC -> stationary mode 3)
+P4,P,4,0.001,10.0,-0.0275,true,4,0.0021,true,,,,,linear analysis only: unique unstable admissible mode n=4
+P5,P,5,0.0004,10.0,-0.0386,true,5,0.002,true,,,,,linear analysis only: fastest-growing mode n=5
+S_stable,S,-1,0.1,10.0,-0.2052,true,1,-0.4831,false,0,1.0,1.0,9.6e-8,weak feedback: perturbations decay
+S_switch_seedA,S,-1,0.1,10.0,1.6494,false,1,1.0595,false,1,3.402,3.402,7.7e-8,bistable switch: noise IC -> uniform winner A
+S_switch_seedB,S,-1,0.1,10.0,1.6494,false,1,1.0595,false,0,0.16,0.16,9.2e-8,bistable switch: noise IC -> uniform winner B
+S_flip_of_P1,S,1,0.1,10.0,0.7315,false,1,0.2023,false,0,0.0,0.0,6.7e-8,negate one edge: pattern -> switch
