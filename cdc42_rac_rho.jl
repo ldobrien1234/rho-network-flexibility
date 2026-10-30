@@ -121,7 +121,7 @@ end
 
 # --------------------------- linear dispersion ----------------------
 """
-Growth rate of admissible mode n (wavenumber kappa = n on [0,2pi], B = -n^2):
+Growth rate of admissible mode n (wavenumber kappa = n on [0,pi], B = -n^2):
 returns (max_real_part, is_complex_pair::Bool, detL::Float64) for L(n) = J - n^2 D.
 """
 function mode_spectrum(n::Integer, J::AbstractMatrix, D::NTuple{3,Float64})
@@ -428,7 +428,7 @@ function count_homog_states(p::RDParams; grid = 0.05:0.35:4.0)
 end
 
 # =====================================================================
-#  1-D PDE solver:  u_t = D u_xx + F(u)  on [0,2pi], no-flux
+#  1-D PDE solver:  u_t = D u_xx + F(u)  on [0,pi], no-flux (modes cos(n x), B = -n^2)
 #  Method of lines + IMEX Euler (implicit diffusion, explicit reaction).
 # =====================================================================
 """
@@ -439,7 +439,7 @@ the homogeneous state.  Returns a NamedTuple with the grid `x`, the final
 profiles `C,R,rho`, the homogeneous state `ustar`, the stopping time `t`,
 and the final max |du/dt| `resid`.
 """
-function simulate(p::RDParams; N = 257, L = 2π, tmax = 4000.0, dt = 4e-3,
+function simulate(p::RDParams; N = 257, L = π, tmax = 4000.0, dt = 4e-3,
                   seed = 1, amp = 1e-2, tol = 1e-8, ic = :perturb, seed_mode = 0)
     x  = range(0, L; length = N)
     h  = step(x)

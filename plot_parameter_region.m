@@ -2,7 +2,7 @@
 % Regions of the two theorems in (C2,C3)-space.  Theorem A regions are also
 % intersected with the half-plane  C3 > -(fCC+frr) C2 + (fCC+fRR)(fCC+frr)(fRR+frr).
 %
-% Theorem A (phi-version):    phi_i    = d_i / f_ii,              S       = -sum(phi)
+% Theorem A (phi-version):    phi_i    = f_ii / d_i,              S       = -sum(phi)
 % % Theorem B (theta-version):  theta_ij = (f_ii+f_jj)/(d_i+d_j),   S_theta = -sum(theta)
 %
 % Eigenvalues Lambda = -k^2.  The unstable wavenumbers are k = kappa1..kappa2, so
@@ -18,19 +18,19 @@
 %           (Theorem B is commented out; axes are fit to Theorem A only.)
 
 %% ---- parameters (edit these) ----
-% f_ii can be any nonzero real.  f_ii < 0 gives S > 0 (always the last row of the table);
+% f_ii can be any real.  f_ii < 0 gives S > 0 (always the last row of the table);
 % f_ii > 0 lets S < 0 and reaches the empty, triangle and first two quadrilateral rows.
-fcc = -0.1;
-frr = -0.1;
-frhorho = -0.1;
+fcc = -5.0;
+frr = -1.0;
+frhorho = -5.0;
 
-dc = 5.0;                   % d_i > 0
-dr = 1.0;
-drho= 5.0;
+dc = 0.05;                  % d_i > 0
+dr = 0.5;
+drho= 0.05;
 d   = [dc dr drho];         % [dC dR drho]
 
 
-phi   = [dc/fcc dr/frr drho/frhorho];     % [phiC phiR phirho]             (Theorem A)
+phi   = [fcc/dc frr/dr frhorho/drho];     % [phiC phiR phirho]             (Theorem A)
 % theta = [(fcc+frr)/(dc+dr) (frhorho+frr)/(drho+dr) (fcc+frhorho)/(dc+drho)];     % [thetaCR thetaRhoR thetaCRho]  (Theorem B)
 
 kappa1 = 1;                 % first unstable wavenumber: sigma_n = -kappa1^2  (kappa1 >= 1)
@@ -49,8 +49,7 @@ msM = [-(kwin(:,2)+1).^2, -kwin(:,2).^2, -kwin(:,1).^2, -(kwin(:,1)-1).^2] + 0; 
 
 %% ---- Theorem A (phi) ----
 S = -sum(phi);
-f = [fcc frr frhorho];                          % f_ii in R \ {0}
-if any(f == 0), error('phi_i = d_i/f_ii is undefined for f_ii = 0.'); end
+f = [fcc frr frhorho];                          % f_ii in R
 [VA, namesA, labA, geomA] = compute_regions(msM, kwin, @(m,sn,s1,M) region_vertices_phi(d, phi, m, sn, s1, M));
 print_cases(msM, kwin, S, 'S', geomA);
 [aA, bA] = halfplane(f);
@@ -222,7 +221,7 @@ function [pairs, names, geom] = vertex_table(S, m, sn, s1, M, Vsym)
 end
 
 function [V, names, geom] = region_vertices_phi(d, phi, m, sn, s1, M)
-% Theorem A: vertices in terms of phi_i = d_i/f_ii.
+% Theorem A: vertices in terms of phi_i = f_ii/d_i.
     S = -sum(phi);
     [pairs, names, geom] = vertex_table(S, m, sn, s1, M, 'V');
     xi2 = phi(1)*phi(2) + phi(1)*phi(3) + phi(2)*phi(3);
@@ -230,7 +229,7 @@ function [V, names, geom] = region_vertices_phi(d, phi, m, sn, s1, M)
     V = zeros(size(pairs,1), 2);
     for i = 1:size(pairs,1)
         x = pairs(i,1);  y = pairs(i,2);  z = S - x - y;
-        C2 = d(1)*d(3) * (xi2 - x*y + (x+y)*z);
+        C2 = d(1)*d(3) * (xi2 - x*y - (x+y)*z);
         C3 = d(1)*d(2)*d(3) * (phi(2)*C2/(d(1)*d(3)) - x*y*z - xi3);
         V(i,:) = [C2 C3];
     end

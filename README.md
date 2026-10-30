@@ -1,13 +1,7 @@
 # Flexibility vs. inflexibility of patterning in the Cdc42–Rac–Rho network
 
-Numerical companion to the LaTeX section *"Flexibility of Spatial Patterning in
-the Cdc42–Rac–Rho Network."*  A standard three-node reaction–diffusion model is
-built to match the text, and parameter sets are found that show
+A standard three-node reaction–diffusion model is built. We simulate theoretical predictions of pattern formation, which are based on a model-independent and network based approach.
 
-* the **flexible** ("patterning", regime **P**) network selecting several
-  different wavelengths, and
-* the **inflexible** ("switch", regime **S**) network never producing a
-  finite-wavelength pattern, for any parameters.
 
 Julia 1.10+ (tested on 1.12).  Dependencies: `Plots`, `ForwardDiff` (both in the
 default environment here).  Run:
@@ -22,7 +16,7 @@ Figures and `summary.csv` are written to `output/`.
 
 ## The model  (`cdc42_rac_rho.jl`)
 
-`u = (C, R, ρ)` = active Cdc42, Rac, Rho on `x ∈ [0, 2π]`, no-flux:
+`u = (C, R, ρ)` = active Cdc42, Rac, Rho on `x ∈ [0, π]`, no-flux:
 
 ```
 ∂_t u = D ∂_xx u + F(u)

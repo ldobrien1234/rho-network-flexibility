@@ -48,10 +48,10 @@ const CCOL = "#1b7837"; const RCOL = "#2166ac"; const RHOCOL = "#b2182b"
 # ---------------------------------------------------------------------
 interior_extrema(v) = count(i -> (v[i]-v[i-1])*(v[i+1]-v[i]) < 0, 2:length(v)-1)
 
-# dominant admissible wavenumber of a profile on [0,2pi] (no-flux) via cosine content
+# dominant admissible wavenumber of a profile on [0,pi] (no-flux) via cosine content
 function dominant_mode(v; nmax = 20)
     w = v .- sum(v)/length(v)
-    x = range(0, 2π; length = length(v))
+    x = range(0, π; length = length(v))
     best_n, best_p = 0, 0.0
     for n in 1:nmax
         c = sum(w .* cos.(n .* x))
@@ -77,8 +77,8 @@ end
 function profile_panel(r; title = "", showlegend = true, ylims = :auto)
     plt = plot(r.x, r.C;   color = CCOL,   lw = 2.4, label = "Cdc42",
                xlabel = "x", ylabel = "activity", title = title, ylims = ylims,
-               legend = showlegend ? :outerright : false, xlims = (0, 2π),
-               xticks = ([0, π, 2π], ["0", "π", "2π"]))
+               legend = showlegend ? :outerright : false, xlims = (0, π),
+               xticks = ([0, π/2, π], ["0", "π/2", "π"]))
     plot!(plt, r.x, r.R;   color = RCOL,   lw = 2.4, label = "Rac")
     plot!(plt, r.x, r.rho; color = RHOCOL, lw = 2.4, label = "Rho")
     # homogeneous state reference
@@ -175,7 +175,7 @@ panelsM = map(enumerate(P_sim_targets)) do (k, n)
     r = P_sims[n]
     p = plot(r.x, r.C; color = CCOL, lw = 2, label = k == 1 ? "Cdc42" : "",
              title = "tuned for n = $n  (stationary wavenumber $(dominant_mode(r.rho)))",
-             titlefontsize = 9, xlims = (0, 2π), xticks = ([0, π, 2π], ["0", "π", "2π"]),
+             titlefontsize = 9, xlims = (0, π), xticks = ([0, π/2, π], ["0", "π/2", "π"]),
              xlabel = "x", ylabel = k == 1 ? "activity" : "",
              legend = k == 1 ? :top : false)
     plot!(p, r.x, r.R;   color = RCOL,   lw = 2, label = k == 1 ? "Rac" : "")
@@ -183,7 +183,7 @@ panelsM = map(enumerate(P_sim_targets)) do (k, n)
     p
 end
 figM = plot(panelsM...; layout = (1, nsim), size = (450nsim, 420), top_margin = 9mm,
-            plot_title = "Regime (P): one graph, one set of signs — flexible wavelength selection on [0, 2π]",
+            plot_title = "Regime (P): one graph, one set of signs — flexible wavelength selection on [0, π]",
             plot_titlefontsize = 12)
 savefig(figM, joinpath(OUT, "P_steady_states_montage.png"))
 
@@ -224,8 +224,8 @@ sB = profile_panel(rS_stable; title = "weak S: perturbation decays back to homog
                    showlegend = true, ylims = (0, 1.6))
 sC = disp_panel(dS_switch; title = "strong feedback: unstable, but the peak is at n → 0, not finite n")
 sD = plot(rS_A.x, rS_A.rho; color = RHOCOL, lw = 2.5, label = "Rho — noise seed 1",
-          xlabel = "x", ylabel = "Rho activity", xlims = (0, 2π), ylims = (-0.2, 3.9),
-          xticks = ([0, π, 2π], ["0", "π", "2π"]), legend = :right,
+          xlabel = "x", ylabel = "Rho activity", xlims = (0, π), ylims = (-0.2, 3.9),
+          xticks = ([0, π/2, π], ["0", "π/2", "π"]), legend = :right,
           title = "strong S: winner-take-all — uniform, IC-dependent")
 plot!(sD, rS_B.x, rS_B.rho; color = :darkorange, lw = 2.5, ls = :dash, label = "Rho — noise seed 4")
 figS = plot(sA, sB, sC, sD; layout = (2, 2), size = (1250, 820),
@@ -240,11 +240,11 @@ r_flip = simulate(p_flip; N = 161, tmax = 3000.0, dt = 5e-3, seed = 5, amp = 0.0
 push_row!("S_flip_of_P1", p_flip, d_flip, r_flip, "negate one edge: pattern -> switch")
 r1 = P_sims[1]
 yl = (0, 1.15 * max(maximum(r1.rho), maximum(r_flip.rho)))
-fL = plot(r1.x, r1.rho; color = RHOCOL, lw = 2.8, label = "", xlims = (0, 2π), ylims = yl,
-          xticks = ([0, π, 2π], ["0", "π", "2π"]), xlabel = "x", ylabel = "Rho activity",
+fL = plot(r1.x, r1.rho; color = RHOCOL, lw = 2.8, label = "", xlims = (0, π), ylims = yl,
+          xticks = ([0, π/2, π], ["0", "π/2", "π"]), xlabel = "x", ylabel = "Rho activity",
           title = "P1: Rac → Rho activating\nstationary Turing pattern (n = 1)")
-fR = plot(r_flip.x, r_flip.rho; color = RHOCOL, lw = 2.8, label = "", xlims = (0, 2π), ylims = yl,
-          xticks = ([0, π, 2π], ["0", "π", "2π"]), xlabel = "x", ylabel = "Rho activity",
+fR = plot(r_flip.x, r_flip.rho; color = RHOCOL, lw = 2.8, label = "", xlims = (0, π), ylims = yl,
+          xticks = ([0, π/2, π], ["0", "π/2", "π"]), xlabel = "x", ylabel = "Rho activity",
           title = "same rate constants, Rac ⊣ Rho negated\nuniform (winner-take-all), no pattern")
 figF = plot(fL, fR; layout = (1, 2), size = (1200, 440),
             plot_title = "Negate the single Rac→Rho edge: the finite-wavelength pattern is gone",
