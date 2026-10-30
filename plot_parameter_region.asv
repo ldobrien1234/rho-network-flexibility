@@ -1,0 +1,201 @@
+% plot_parameter_region.m
+% Regions of the two theorems in (C2,C3)-space, and their intersection with
+% the half-plane  C3 > -(fCC+frr) C2 + (fCC+fRR)(fCC+frr)(fRR+frr).
+%
+% Theorem A (phi-version):    phi_i    = d_i / f_ii,              S       = -sum(phi)
+% Theorem B (theta-version):  theta_ij = (f_ii+f_jj)/(d_i+d_j),   S_theta = -sum(theta)
+%
+% Figure 1: Theorem A, one subplot per row of msM.
+% Figure 2: Theorem B, one subplot per row of msM.
+% Figure 3: every region of both theorems overlaid on one plane
+%           (Theorem A solid / circles, Theorem B dashed / squares).
+
+%% ---- parameters (edit these) ----
+d     = [1 1 1];            % [dC dR drho]
+fcc = -0.1;
+frr = -0.1;
+frhorho = -0.1;
+
+dc = 1.0;
+dr = 1.0;
+drho=1.0;
+
+
+
+phi   = -[dc/fcc dr/frr drho/frhorho];     % [phiC phiR phirho]             (Theorem A)
+theta = -[(fcc+frr)/(dc+dr) (frhorho+frr)/(drho+dr) (fcc+frhorho)/(dc+drho)];     % [thetaCR thetaRhoR thetaCRho]  (Theorem B)
+
+n_regions = 6;
+msM = zeros(n_regions,3);
+for i=1:n_regions
+    msM(i,1:3) = [-(i+2)^2 -(i+1)^2 -i^2]; % rows of [m sigma M]
+end
+
+%% ---- Theorem A (phi) ----
+S = -sum(phi);
+f = d ./ phi;                                   % f_ii = d_i / phi_i
+[VA, namesA, labA] = compute_regions(msM, @(m,sg,M) region_vertices_phi(d, phi, m, sg, M));
+[aA, bA] = halfplane(f);
+plot_subplots(VA, namesA, labA, S, 'S', aA, bA);
+
+%% ---- Theorem B (theta) ----
+S_theta = -sum(theta);
+% f_ii recovered from  theta_ij (d_i+d_j) = f_ii + f_jj  (three linear equations)
+%   rows: CR, rhoR, Crho      columns: fCC fRR frr
+A_th = [1 1 0; 0 1 1; 1 0 1];
+dd   = [d(1)+d(2); d(3)+d(2); d(1)+d(3)];
+f_th = (A_th \ (theta(:) .* dd))';
+[VB, namesB, labB] = compute_regions(msM, @(m,sg,M) region_vertices_theta(d, theta, m, sg, M));
+[aB, bB] = halfplane(f_th);
+plot_subplots(VB, namesB, labB, S_theta, 'S_\theta', aB, bB);
+
+%% ---- Figure 3: both theorems on one plane ----
+Vall = vertcat(VA{:}, VB{:});
+if isempty(Vall), error('every set of both theorems is empty.'); end
+[xl, yl] = axis_limits(Vall);
+HA = halfplane_shape(aA, bA, xl, yl);
+HB = halfplane_shape(aB, bB, xl, yl);
+
+figure('Color', 'w'); hold on; grid on
+n = size(msM, 1);
+cols = lines(n);
+hA = gobjects(n, 1);  hB = gobjects(n, 1);
+for k = 1:n
+    if ~isempty(VA{k})
+        hA(k) = draw_region(VA{k}, namesA{k}, cols(k,:), cols(k,:), HA, '-', 'o');
+    end
+    if ~isempty(VB{k})
+        hB(k) = draw_region(VB{k}, namesB{k}, cols(k,:), cols(k,:), HB, '--', 's');
+    end
+end
+hlA = plot(xl, aA*xl + bA, 'k-',  'LineWidth', 1.5);
+hlB = plot(xl, aB*xl + bB, 'k--', 'LineWidth', 1.5);
+xlim(xl); ylim(yl);
+xlabel('C_2'); ylabel('C_3');
+title({sprintf('All regions of both theorems,  S = %g,  S_\\theta = %g', S, S_theta), ...
+       'solid: \phi-theorem,  dashed: \theta-theorem,  dark fill = region \cap half-plane'});
+kA = isgraphics(hA);  kB = isgraphics(hB);
+legend([hA(kA); hB(kB); hlA; hlB], ...
+       [cellfun(@(t) ['\phi:  ' t],   labA(kA), 'UniformOutput', false); ...
+        cellfun(@(t) ['\theta:  ' t], labB(kB), 'UniformOutput', false); ...
+        {'half-plane boundary (\phi)'; 'half-plane boundary (\theta)'}], 'Location', 'best');
+
+%% ---- helpers ----
+function [V, names, lab] = compute_regions(msM, vertex_fun)
+% Vertices, vertex labels and a title string for every row of msM.
+    n = size(msM, 1);
+    V = cell(n, 1);  names = cell(n, 1);  lab = cell(n, 1);
+    for k = 1:n
+        [V{k}, names{k}] = vertex_fun(msM(k,1), msM(k,2), msM(k,3));
+        lab{k} = sprintf('m = %g, \\sigma = %g, M = %g', msM(k,:));
+    end
+end
+
+function [a, b] = halfplane(f)
+% Half-plane  C3 > a*C2 + b  from f = [fCC fRR frr].
+    a = -(f(1) + f(3));
+    b = (f(1) + f(2)) * (f(1) + f(3)) * (f(2) + f(3));
+end
+
+function [xl, yl] = axis_limits(Vall)
+    xl = [min(Vall(:,1)) max(Vall(:,1))];  xl = xl + 0.3*max(diff(xl), eps)*[-1 1];
+    yl = [min(Vall(:,2)) max(Vall(:,2))];  yl = yl + 0.3*max(diff(yl), eps)*[-1 1];
+end
+
+function H = halfplane_shape(a, b, xl, yl)
+    H = polyshape([xl(1) xl(2) xl(2) xl(1)], [a*xl(1)+b, a*xl(2)+b, yl(2)+1e3, yl(2)+1e3]);
+end
+
+function plot_subplots(V, names, lab, S, Sname, a, b)
+% One subplot per row of msM for a single theorem.
+    Vall = vertcat(V{:});
+    if isempty(Vall)
+        warning('%s = %g: every set is empty.', Sname, S);  return
+    end
+    [xl, yl] = axis_limits(Vall);
+    H = halfplane_shape(a, b, xl, yl);
+    figure('Color', 'w');
+    tiledlayout('flow');
+    for k = 1:numel(V)
+        nexttile; hold on; grid on
+        xlabel('C_2'); ylabel('C_3');
+        title(sprintf('%s   (%s = %g)', lab{k}, Sname, S));
+        if isempty(V{k})
+            text(0.5, 0.5, 'empty set', 'Units', 'normalized', 'HorizontalAlignment', 'center');
+            continue
+        end
+        draw_region(V{k}, names{k}, [0.2 0.45 0.85], [0.85 0.25 0.25], H, '-', 'o');
+        plot(xl, a*xl + b, 'k-', 'LineWidth', 1.5);
+        if k == 1
+            legend({'theorem region', 'region \cap half-plane', ...
+                    'C_3 = -(f_{CC}+f_{\rho\rho})C_2 + \Pi'}, 'Location', 'best');
+        end
+    end
+end
+
+function hP = draw_region(V, names, colRegion, colClip, H, ls, mk)
+% Fill the polygon with vertices V (light), its intersection with H (dark),
+% mark and label the vertices.  ls / mk: edge line style and vertex marker.
+% Returns the handle of the region patch.
+    [~, order] = sort(atan2(V(:,2) - mean(V(:,2)), V(:,1) - mean(V(:,1))));  % ccw
+    P = polyshape(V(order,1), V(order,2));
+    if P.NumRegions == 0                       % vertices coincide (e.g. S = m+sigma+M)
+        hP = plot(V(1,1), V(1,2), mk, 'Color', colRegion, 'MarkerFaceColor', colRegion);
+    else
+        hP = plot(P, 'FaceColor', colRegion, 'FaceAlpha', 0.25, 'EdgeColor', colRegion, 'LineStyle', ls);
+        Q  = intersect(P, H);
+        plot(Q, 'FaceColor', colClip, 'FaceAlpha', 0.45, 'EdgeColor', colClip, 'LineStyle', ls);
+    end
+    plot(V(:,1), V(:,2), mk, 'Color', colRegion, 'MarkerFaceColor', colRegion);
+    text(V(:,1), V(:,2), names, 'Color', colRegion*0.7, 'Interpreter', 'latex', ...
+         'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'left');
+end
+
+function [pairs, names] = vertex_table(S, m, sg, M, Vsym)
+% The (x,y) pairs and labels of the vertices, from the table shared by both
+% theorems.  Vsym is the LaTeX symbol of a vertex ('V' or '\overline{V}').
+    if S <= m + sg
+        pairs = [];                      tags = {};
+    elseif S < m + M
+        pairs = [m sg; m 0; sg 0];       tags = {'m\sigma', 'm0', '\sigma 0'};
+    elseif S < sg + M
+        pairs = [m M; m sg; M 0; sg 0];  tags = {'mM', 'm\sigma', 'M0', '\sigma 0'};
+    else
+        pairs = [sg M; m M; m sg];       tags = {'\sigma M', 'mM', 'm\sigma'};
+    end
+    names = cellfun(@(t) ['$' Vsym '_{' t '}$'], tags, 'UniformOutput', false);
+end
+
+function [V, names] = region_vertices_phi(d, phi, m, sg, M)
+% Theorem A: vertices in terms of phi_i = d_i/f_ii.
+    S = -sum(phi);
+    [pairs, names] = vertex_table(S, m, sg, M, 'V');
+    xi2 = phi(1)*phi(2) + phi(1)*phi(3) + phi(2)*phi(3);
+    xi3 = prod(phi);
+    V = zeros(size(pairs,1), 2);
+    for i = 1:size(pairs,1)
+        x = pairs(i,1);  y = pairs(i,2);  z = S - x - y;
+        C2 = d(1)*d(3) * (xi2 - x*y + (x+y)*z);
+        C3 = d(1)*d(2)*d(3) * (phi(2)*C2/(d(1)*d(3)) - x*y*z - xi3);
+        V(i,:) = [C2 C3];
+    end
+end
+
+function [V, names] = region_vertices_theta(d, th, m, sg, M)
+% Theorem B: vertices in terms of theta_ij = (f_ii+f_jj)/(d_i+d_j),
+% th = [thetaCR thetaRhoR thetaCRho].
+    S = -sum(th);
+    [pairs, names] = vertex_table(S, m, sg, M, '\overline{V}');
+    thCR = th(1);  thRr = th(2);  thCr = th(3);
+    z2 = thCR*thCr + thCR*thRr + thCr*thRr;        % zeta_2
+    z3 = thCR*thCr*thRr;                           % zeta_3
+    pCR = d(1)+d(2);  pRr = d(2)+d(3);  pCr = d(1)+d(3);   % (dC+dR), (dR+drho), (dC+drho)
+    V = zeros(size(pairs,1), 2);
+    for i = 1:size(pairs,1)
+        x = pairs(i,1);  y = pairs(i,2);  z = S - x - y;
+        C2 = pCR*pRr * (x*y + (x+y)*z - z2);
+        C3 = -pCR*pCr*pRr * (x*y*z - thCr*pCR*pRr*C2 - z3);      % as written in the theorem
+        % C3 = -pCR*pCr*pRr * (x*y*z - thCr*C2/(pCR*pRr) - z3);  % if the theta*C2 term should be divided, as in Theorem A
+        V(i,:) = [C2 C3];
+    end
+end
