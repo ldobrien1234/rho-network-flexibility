@@ -30,7 +30,7 @@ const D_DIFF = (0.05, 0.5, 0.05)        # (d_C, d_R, d_rho)
 const L_DOM  = π                        # Neumann on [0, pi]: modes cos(n x)
 const KMAX   = 4                        # windows kappa1..kappa2 with kappa2 <= KMAX
 const OUTDIR = joinpath(@__DIR__, "output", "atlas")
-const CCOL = "#1b7837"; const RCOL = "#2166ac"; const RHOCOL = "#b2182b"   # as in run_simulations.jl
+const CCOL = "#1b7837"; const RCOL = "#2166ac"; const RHOCOL = "#b2182b"
 
 # =====================================================================
 #  Theorem A regions (port of plot_parameter_region.m)

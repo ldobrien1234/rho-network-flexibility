@@ -7,7 +7,6 @@ Julia 1.10+ (tested on 1.12).  Dependencies: `Plots`, `ForwardDiff` (both in the
 default environment here).  Run:
 
 ```
-julia run_simulations.jl            # figures + summary.csv in output/
 julia -t auto cycle_atlas.jl        # attractor atlas, output/atlas/
 julia -t 3 onset_sweeps.jl          # onset and Hopf sweeps, output/sweeps/
 ```
@@ -50,72 +49,6 @@ phosphorylates and inactivates RhoA GEFs p115-RhoGEF / GEF-H1 / PDZ-RhoGEF
 
 Dispersion: admissible modes are `cos(n x)`, `n = 0,1,2,…` (`B = −n²`), and the
 growth rate of mode `n` is `maxRe eig(J − n² D)` with `J = DF(u*)`.
-
-## What the scripts show
-
-### `construct_regime_P(n)`  — the paper's backward construction
-
-Given a target mode `n`, fixes the *root geometry* of the dispersion cubic
-`g(B) = det L(B)` so that `B = −n²` is a **double root** (marginal), solves
-backward for the cycle quantities `C_{Cρ} = f_Cρ f_ρC` (2-cycle) and
-`C_3 = f_RC f_ρR f_Cρ` (3-cycle), and realises them with sign-legal Hill
-kinetics at `u* = (1,1,1)`.  Output confirms `C_{Cρ} > 0` and `C_3 < 0` for every
-`n` (Theorem "Patterning forces `C_{Cρ} > 0` and `C_3 < 0`").
-
-`push_to_onset` then raises a single 2-cycle gain infinitesimally past the
-marginal point to get a genuine one-mode instability.
-
-### Regime P is flexible
-
-`P_dispersion_family.png` — five constructed sets; the linear dispersion peak
-sits **exactly** on `n = 1,2,3,4,5` in turn (right panel, ★).  Same graph, same
-signs, only rate constants change.  This is the paper's actual claim — a
-statement about the *primary instability*, i.e. a linear one.
-
-`P_steady_states_montage.png`, `P{1,2,3}_mode{1,2,3}.png` — PDE integration from
-small random noise, at a fixed small supercriticality (2-cycle gain 1.004),
-converges to a **stationary `n`-stripe pattern** (dominant cosine wavenumber
-`= n`, verified by `dominant_mode`).
-
-`n = 4, 5` are shown by the dispersion relation only.  With a linearly stable
-homogeneous state the well curvature at mode `n` obeys `|g''(−n²)| ≲ 18/n⁴`, so
-the high-`n` wells are very flat: nonlinear selection there needs the capture
-band to be tuned narrower than the lattice gap (the text's onset proposition),
-and away from that narrow window a Turing system on a finite interval coarsens
-toward the longest-wavelength large-amplitude state.  `n = 1,2,3` are safely
-inside the robust window; `n = 4,5` are not, in this three-node model with an
-order-one homogeneous decay rate.
-
-### Regime S is inflexible
-
-`S_switch_and_stable.png`:
-
-* **weak feedback** → stable homogeneous state, **every** admissible mode decays
-  (`turing = false`), a perturbation relaxes back to homogeneous;
-* **strong feedback** → the homogeneous state loses stability, but the growth
-  rate is *maximal at `n → 0`* (spatially uniform), not at any finite `n`.  The
-  network is bistable and goes **winner-take-all**: the final state is uniform
-  and depends on the initial condition (`S_switch_and_stable.png`, bottom-right:
-  two noise seeds → two different uniform Rho levels).
-
-`edge_flip_comparison.png` — take a working regime-P set and **negate the single
-Rac → Rho edge**: the `n = 1` Turing pattern is replaced by a uniform
-winner-take-all state.
-
-### The dichotomy is structural, not fine-tuning
-
-`structural_scan_histogram.png` / `scan_regime` — 6000 random sign-legal
-parameter draws per regime.  Among draws with a linearly stable homogeneous
-state:
-
-```
-regime P :  ~6 %   admit a finite-wavelength (Turing) instability;  max growth ≈ +0.5
-regime S :   0     (0 / ~1600);                                     max growth < 0  (bounded away from 0)
-```
-
-This is the numerical form of the Corollary (Regime dichotomy): with Rac ⊣ Rho
-the 3-cycle `C_3 > 0` is forced, the necessary condition `C_3 < 0` can never be
-met, and no amount of parameter tuning yields a pattern.
 
 ## Theorem regions in cycle space
 
@@ -230,9 +163,7 @@ disappears within one step of `W₀`, so the Hopf onset looks supercritical.
 
 | file | contents |
 |---|---|
-| `cdc42_rac_rho.jl` | model, Jacobian, homogeneous solver, linear dispersion, IMEX PDE solver, `construct_regime_P`, `push_to_onset`, `flip_to_regime_S`, `build_regime_S`, `scan_regime` |
-| `run_simulations.jl` | builds all parameter sets, simulates, writes figures + `summary.csv` |
+| `cdc42_rac_rho.jl` | model, Jacobian, homogeneous solver, linear dispersion, IMEX PDE solver |
 | `cycle_atlas.jl` | Theorem A regions (polygon ∩ half-plane), `lift` from `(C2, C3)` to Hill kinetics, attractor atlas |
 | `onset_sweeps.jl` | parameter sweeps across `T_k` (Turing) and `W₀` (Hopf); includes `cycle_atlas.jl` |
 | `plot_parameter_region.m` | MATLAB plots of the Theorem A regions and half-plane (Theorem B commented out) |
-| `output/summary.csv` | one row per parameter set: regime, homogeneous stability, fastest mode `n*`, its growth rate, `turing` flag, realised pattern wavenumber |
