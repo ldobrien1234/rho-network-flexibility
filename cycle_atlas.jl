@@ -39,8 +39,8 @@ const CCOL = "#1b7837"; const RCOL = "#2166ac"; const RHOCOL = "#b2182b"
 function vertex_pairs(S, m, sn, s1, M)
     S <= m + sn  && return Tuple{Float64,Float64}[]
     S <  m + M   && return [(m, sn), (m, 0.0), (sn, 0.0)]
-    S <  s1 + sn && return [(m, M), (m, sn), (M, 0.0), (s1, 0.0)]
-    S <  s1 + M  && return [(m, M), (m, sn), (M, 0.0), (sn, 0.0)]
+    S <  s1 + sn && return [(m, M), (m, sn), (M, 0.0), (sn, 0.0)]
+    S <  s1 + M  && return [(m, M), (m, sn), (s1, sn), (s1, 0.0), (M, 0.0)]
     return [(s1, M), (s1, sn), (m, M), (m, sn)]
 end
 

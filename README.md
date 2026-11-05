@@ -66,32 +66,40 @@ draws the Theorem A region in `(C2, C3)`.  The variables are
 ```
 
 (`f_ii` may be any real number; `f_ii > 0` lets `S < 0`, which reaches the empty,
-triangle and first quadrilateral rows of the geometry table).  Each polygon vertex is
+triangle, first quadrilateral and pentagon rows of the geometry table).  Each polygon vertex is
 
 ```
 C2 = d_C d_ρ (ξ2 − x y − (x + y) z),     z = S − x − y
 C3 = d_C d_R d_ρ (φ_R C2/(d_C d_ρ) − x y z − ξ3)
 ```
 
-The `−x y` term is intended, and the region area jumps at `S = m + M` and
-`S = σ + M` are real.  Theorem A regions are also intersected with the half-plane
+The `−x y` term is intended, and the polygon varies continuously with `S` across
+the rows of the table.  Theorem A regions are also intersected with the half-plane
 
 ```
 C3 > −(f_CC + f_ρρ) C2 + (f_CC + f_RR)(f_CC + f_ρρ)(f_RR + f_ρρ)
 ```
 
-and the window `κ1..κ2` is guaranteed only on **polygon ∩ half-plane**, not on
-the polygon alone.  Its boundary `W₀` is the Routh–Hurwitz condition for `J`
+and, when all `f_ii < 0`, the window `κ1..κ2` is guaranteed only on
+**polygon ∩ half-plane**, not on the polygon alone.  With some `f_ii > 0`, the full
+conditions in `theorems.tex` are also needed.  Its boundary `W₀` is the Routh–Hurwitz condition for `J`
 itself; outside it the uniform mode `k = 0` goes unstable as a complex pair.
-Theorem B (`θ_ij = (f_ii + f_jj)/(d_i + d_j)`) is kept in the file but commented
-out; it has no half-plane condition.
+Theorem B (`θ_ij = (f_ii + f_jj)/(d_i + d_j)`) uses the same table with its own
+vertices.  It requires `g(−k²) < 0` at every mode, and its set is empty when all
+`f_ii < 0`.
 
-Figure 1 shows one subplot per window, and Figure 2 overlays every region with
+`theorems.tex` assumes throughout that the zero mode is stable: `tr L(0) < 0`,
+`g(0) < 0` and `Q(0) > 0`.  The trace is then negative at every mode.
+`theorems_general_trace.tex` keeps the earlier version that also covers positive trace.
+
+Figure 1 shows one Theorem A subplot per window.  Figure 2 shows the Theorem A and B
+polygons with the half-planes `g(−k²) < 0` for `k` in `kHP` and the zero-mode wedge,
+and warns if a half-plane outside `kHP` cuts the region shown.  Figure 3 overlays every Theorem A region with
 the line `L : C3 = d_R φ_R C2 − d_C d_R d_ρ ξ3`, which every region lies on or below.
 
 ### `cycle_atlas.jl` — what the nonlinear system does inside each region
 
-Uses the same fixed diagonal as the MATLAB defaults,
+Uses the same fixed diagonal as the baseline set in the MATLAB script,
 `f = (−5, −1, −5)`, `d = (0.05, 0.5, 0.05)`, on `x ∈ [0, π]`, for every window
 with `κ2 ≤ 4`.  It works in four steps:
 
@@ -166,4 +174,6 @@ disappears within one step of `W₀`, so the Hopf onset looks supercritical.
 | `cdc42_rac_rho.jl` | model, Jacobian, homogeneous solver, linear dispersion, IMEX PDE solver |
 | `cycle_atlas.jl` | Theorem A regions (polygon ∩ half-plane), `lift` from `(C2, C3)` to Hill kinetics, attractor atlas |
 | `onset_sweeps.jl` | parameter sweeps across `T_k` (Turing) and `W₀` (Hopf); includes `cycle_atlas.jl` |
-| `plot_parameter_region.m` | MATLAB plots of the Theorem A regions and half-plane (Theorem B commented out) |
+| `plot_parameter_region.m` | MATLAB plots of the Theorem A and B regions and their half-planes |
+| `theorems.tex` | (kept locally, not in this repository) Theorems A–E under the stable-zero-mode assumption, the vertex table, the classification by polygons, and the sign of `C2` |
+| `theorems_general_trace.tex` | (kept locally, not in this repository) earlier version of the theorems that also covers positive trace |
