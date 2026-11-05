@@ -86,16 +86,19 @@ conditions in `theorems.tex` are also needed.  Its boundary `W₀` is the Routh�
 itself; outside it the uniform mode `k = 0` goes unstable as a complex pair.
 Theorem B (`θ_ij = (f_ii + f_jj)/(d_i + d_j)`) uses the same table with its own
 vertices.  It requires `g(−k²) < 0` at every mode, and its set is empty when all
-`f_ii < 0`.
+`f_ii < 0`, or more generally when `e2 = f_CC f_RR + f_CC f_ρρ + f_RR f_ρρ ≥ 0`.  It
+always lies in `C2 < e2 < 0`, so it is out of reach under mutual inhibition (`C2 > 0`).
 
 `theorems.tex` assumes throughout that the zero mode is stable: `tr L(0) < 0`,
 `g(0) < 0` and `Q(0) > 0`.  The trace is then negative at every mode.
 `theorems_general_trace.tex` keeps the earlier version that also covers positive trace.
 
-Figure 1 shows one Theorem A subplot per window.  Figure 2 shows the Theorem A and B
-polygons with the half-planes `g(−k²) < 0` for `k` in `kHP` and the zero-mode wedge,
-and warns if a half-plane outside `kHP` cuts the region shown.  Figure 3 overlays every Theorem A region with
-the line `L : C3 = d_R φ_R C2 − d_C d_R d_ρ ξ3`, which every region lies on or below.
+Figure 1 shows one Theorem A subplot per window, with the line
+`L : C3 = d_R φ_R C2 − d_C d_R d_ρ ξ3`, which every region lies on or below.  Figure 2 has
+two panels.  The left panel shows the steady-state (Theorem A) and Hopf (Theorem B) polygons
+together, and the wedge.  The right panel maps cycle space with a stable zero mode: every
+window that can occur (it does not depend on `κ1`, `κ2`), the number of unstable eigenvalues in
+each region, and which bifurcation happens on each edge of the stable region.
 
 ### `cycle_atlas.jl` — what the nonlinear system does inside each region
 

@@ -13,9 +13,9 @@
 % Rows of msM are [m sigma_1 sigma_n M], rows of kwin are [a b].
 %
 % Figure 1: Theorem A, one subplot per row of msM.
-% Figure 2: Theorem A and B polygons with the half-planes g(-k^2) < 0 of Theorem B, k in kHP.
-%           Also shows the zero-mode wedge g(0) < 0, Q(0) > 0, the standing assumption of theorems.tex.
-% Figure 3: every Theorem A region overlaid on one plane (axes fit to Theorem A only).
+% Figure 2, left: every Theorem A (steady-state) and Theorem B (Hopf) polygon on one plane.
+% Figure 2, right: exact map of the zero-mode wedge (the standing assumption of theorems.tex).
+%           It lists every window that can occur, so it does not depend on kappa1 and kappa2.
 
 %% ---- parameters (edit these) ----
 % f_ii can be any real.  f_ii < 0 gives S > 0 (always the last row of the table);
@@ -27,8 +27,8 @@
 % Baseline: all f_ii < 0, so the Theorem B set is empty (also used by cycle_atlas.jl).
 % fcc = -5.0;  frr = -1.0;  frhorho = -5.0;
 
-% Set 1: Theorem A and B polygons on one scale; g(0) = 0 visibly cuts the Theorem B polygons.
-fcc = 1.0;  frr = -4.0;  frhorho = 1.0;
+% Set 1: g(0) = 0 visibly cuts the Theorem B polygons; S_theta <= -5 leaves mode 1 no window alone.
+% fcc = 1.0;  frr = -4.0;  frhorho = 1.0;
 
 % Set 2: stronger Rac decay; most Theorem B polygons survive, every table row appears for Theorem B.
 % fcc = 2.0;  frr = -8.0;  frhorho = 2.0;
@@ -43,9 +43,18 @@ fcc = 1.0;  frr = -4.0;  frhorho = 1.0;
 % mode is stable (see theorems_general_trace.tex for this case).
 % fcc = -2.0;  frr = 8.0;  frhorho = -3.0;
 
-dc = 0.05;                  % d_i > 0
-dr = 0.5;
-drho= 0.05;
+% Set 6 (with the diffusivities below): steady-state and Hopf regions both inside the wedge, and
+% mode k = 1 has both a steady-state and a Hopf edge on the stable region.
+% fcc = -7.5;  frr = 3.5;  frhorho = -1.0;
+
+% Set 7: a wide range of steady-state patterns under mutual inhibition (C2 > 0, C3 < 0): each of the
+% modes k = 1..8 can be the only unstable mode, and windows reach up to k = 12.
+fcc = -5.0;  frr = -16.0;  frhorho = -5.0;
+
+% Diffusivities for the baseline and Sets 1-5 and 7:
+dc = 0.05;  dr = 0.5;  drho = 0.05;     % d_i > 0
+% Diffusivities for Set 6:
+% dc = 5.0;  dr = 0.5;  drho = 0.2;
 d   = [dc dr drho];         % [dC dR drho]
 
 
@@ -58,7 +67,6 @@ if kappa1 < 1 || kappa2 < kappa1 || any(mod([kappa1 kappa2], 1))
     error('need integers 1 <= kappa1 <= kappa2 (the unstable modes sigma_i must be nonzero).');
 end
 
-kHP = 0:20;                 % wavenumbers of the half-planes g(-k^2) < 0 drawn in Figure 2
 
 kwin = [kappa1 kappa2];                         % full window first, then every sub-window
 for a = kappa1:kappa2
@@ -85,52 +93,13 @@ S_theta = -sum(theta);
 [VB, namesB, labB, geomB] = compute_regions(msM, kwin, @(m,sn,s1,M) region_vertices_theta(d, theta, m, sn, s1, M));
 print_cases(msM, kwin, S_theta, 'S_theta', geomB);
 
-%% ---- Figure 2: Theorem A and B polygons with the half-planes of Theorem B ----
-plot_polygons_and_halfplanes(VA, namesA, labA, VB, namesB, labB, f, d, kHP, S, S_theta);
-
-%% ---- Figure 3: all Theorem A regions on one plane ----
-% Vall = vertcat(VA{:}, VB{:});
-Vall = vertcat(VA{:});                          % axes fit to Theorem A only
-% if isempty(Vall), error('every set of both theorems is empty.'); end
-if isempty(Vall)
-    warning('every set of Theorem A is empty; skipping the Theorem A overlay.');
-    return
-end
-[xl, yl] = axis_limits(Vall);
-HA = halfplane_shape(aA, bA, xl, yl);
-
-figure('Color', 'w'); hold on; grid on
-n = size(msM, 1);
-cols = lines(n);
-hA = gobjects(n, 1);  % hB = gobjects(n, 1);
-for k = 1:n
-    if ~isempty(VA{k})
-        hA(k) = draw_region(VA{k}, namesA{k}, cols(k,:), cols(k,:), HA, '-', 'o');
-    end
-    % if ~isempty(VB{k})
-    %     hB(k) = draw_region(VB{k}, namesB{k}, cols(k,:), cols(k,:), [], '--', 's');
-    % end
-end
-hlA = plot(xl, aA*xl + bA, 'k-',  'LineWidth', 1.5);
-xlim(xl); ylim(yl);
-xlabel('C_2'); ylabel('C_3');
-% title({sprintf('All regions of both theorems,  S = %g,  S_\\theta = %g', S, S_theta), ...
-%        'solid: \phi-theorem,  dashed: \theta-theorem,  dark fill = \phi-region \cap half-plane'});
-title({sprintf('All regions of Theorem A,  S = %g', S), ...
-       'dark fill = \phi-region \cap half-plane'});
-kA = isgraphics(hA);  % kB = isgraphics(hB);
-% legend([hA(kA); hB(kB); hlA], ...
-%        [cellfun(@(t) ['\phi:  ' t{1}],   labA(kA), 'UniformOutput', false); ...
-%         cellfun(@(t) ['\theta:  ' t{1}], labB(kB), 'UniformOutput', false); ...
-%         {'half-plane boundary (\phi)'}], 'Location', 'best');
-legend([hA(kA); hlA], ...
-       [cellfun(@(t) ['\phi:  ' t{1}], labA(kA), 'UniformOutput', false); ...
-        {'half-plane boundary (\phi)'}], 'Location', 'best');
+%% ---- Figure 2: steady-state and Hopf windows together, and the map of cycle space ----
+plot_cycle_space(f, d, phi, theta, kwin);
 
 %% ---- sanity check: line L through every vertex with subscript 0 (comment out when done) ----
 % L:  C3 = dR*phiR*C2 - dC*dR*drho*xi3.  Every region should lie on or below L.
 LA = [d(2)*phi(2), -prod(d)*prod(phi)];         % [slope intercept]
-for ax = [findobj(fig1, 'Type', 'axes'); findobj(gcf, 'Type', 'axes')]'
+for ax = findobj(fig1, 'Type', 'axes')'
     if ~isempty(findobj(ax, 'Type', 'text', 'String', 'empty set')), continue, end
     xx = xlim(ax);  xlim(ax, xx);  ylim(ax, ylim(ax));   % keep the axes fit to the regions
     plot(ax, xx, LA(1)*xx + LA(2), '--', 'Color', [0.95 0.55 0], 'LineWidth', 2, ...
@@ -210,92 +179,310 @@ function plot_subplots(V, names, lab, S, Sname, a, b)
     end
 end
 
-function plot_polygons_and_halfplanes(VA, namesA, labA, VB, namesB, labB, f, d, kHP, S, S_theta)
-% Theorem A polygons (solid), Theorem B polygons (dashed), the zero-mode boundaries g(0) = 0 and
-% Q(0) = 0, and the smallest-slope boundary g(-k^2) = 0 among those in kHP that cross the axes.
-% Grey = all half-planes g(-k^2) < 0, k in kHP.  Green = zero-mode wedge.
-% Dark fill: Theorem A polygon in the wedge; Theorem B polygon in the grey set.  Dark fill needs
-% tr L(0) < 0.  Only finitely many half-planes are used, so the dark Theorem B fill can only
-% overestimate the Theorem B set; a warning names any other k that would cut the region shown.
-    Vall = vertcat(VA{:}, VB{:});
-    if isempty(Vall)
-        warning('every set of both theorems is empty; skipping the half-plane figure.');
+function plot_cycle_space(f, d, phi, theta, kwin)
+% Left panel: every polygon of both theorems, for the windows in kwin and those that can reach the wedge.
+% Right panel: map of the (C2,C3) plane under the standing assumption that the zero mode is stable
+% (theorems.tex).
+% Inside the wedge g(0) < 0, Q(0) > 0, only windows of modes in ZA (for g) and ZB (for Q) can occur,
+% so this map is complete, whatever kappa1 and kappa2 are.  It shows, at every point of the wedge,
+% how many eigenvalues each mode has with positive real part, and it marks which bifurcation
+% happens on each edge of the region where the homogeneous equilibrium is stable.
+    trL0 = sum(f);
+    if trL0 >= 0
+        warning('tr L(0) = %g >= 0: the zero mode is unstable, so these f_ii violate the standing assumption; skipping the map.', trL0);
         return
     end
-    [xl, yl] = axis_limits(Vall);
-    [a, b] = g_lines(f, d, kHP);
-    Hg = g_halfplanes_shape(a, b, xl, yl);
-    trL0 = sum(f);
+    st = warning('off', 'MATLAB:polyshape:repairedBySimplify');
+    restore = onCleanup(@() warning(st));
+
+    e2 = f(1)*f(2) + f(1)*f(3) + f(2)*f(3);
     [a0, b0] = g_lines(f, d, 0);                % g(0) < 0:  C3 < a0*C2 + b0
-    [aQ, bQ] = halfplane(f);                    % Q(0) > 0:  C3 > aQ*C2 + bQ
-    Hzero = intersect(g_halfplanes_shape(a0, b0, xl, yl), halfplane_shape(aQ, bQ, xl, yl));
-    if trL0 < 0
-        HA = Hzero;  HB = Hg;
-    else
-        HA = [];  HB = [];
-        warning('tr L(0) = %g >= 0: the zero mode is unstable, so these f_ii violate the standing assumption.', trL0);
+    [aQ, bQ] = q_lines(f, d, 0);                % Q(0) > 0:  C3 > aQ*C2 + bQ
+    tip = [e2, a0*e2 + b0];
+    [ZA, ZB] = needed_modes(f, d, phi, theta, e2);
+    funA = @(m,sn,s1,M) region_vertices_phi(d, phi, m, sn, s1, M);
+    funB = @(m,sn,s1,M) region_vertices_theta(d, theta, m, sn, s1, M);
+    [PA, WA] = window_polygons(all_windows(ZA), funA);
+    [PB, WB] = window_polygons(all_windows(ZB), funB);
+    [FA, WFA] = window_polygons(unique([all_windows(ZA); kwin], 'rows'), funA);
+    [FB, WFB] = window_polygons(unique([all_windows(ZB); kwin], 'rows'), funB);
+    colA = [0.20 0.45 0.85];  colB = [0.90 0.40 0.25];  colM = [0.55 0.25 0.70];
+
+    % Left-panel axes: windows that can reach the wedge; if a theorem has none, its smallest polygon.
+    Vfit = tip;
+    for P = [PA PB], Vfit = [Vfit; P{1}.Vertices]; end %#ok<AGROW>
+    if isempty(PA), Vfit = [Vfit; smallest_polygon_vertices(FA)]; end
+    if isempty(PB), Vfit = [Vfit; smallest_polygon_vertices(FB)]; end
+
+    % Clip the polygons to the wedge, then fit the axes to the part inside it.
+    Vall = tip;
+    for P = [PA PB], Vall = [Vall; P{1}.Vertices]; end %#ok<AGROW>
+    [xl, yl] = axis_limits(Vall);
+    Hzero = wedge_shape(a0, b0, aQ, bQ, xl, yl);
+    [PA, WA] = clip_polygons(PA, WA, Hzero);
+    [PB, WB] = clip_polygons(PB, WB, Hzero);
+    Vin = vertcat(zeros(0,2), tip);
+    for P = [PA PB], Vin = [Vin; P{1}.Vertices]; end %#ok<AGROW>
+    if size(Vin, 1) == 1                        % no polygon meets the wedge
+        x0 = e2 - max(1, abs(e2));
+        Vin = [tip; x0, a0*x0 + b0; x0, aQ*x0 + bQ];
+    end
+    [xl, yl] = axis_limits(Vin);
+    Hzero = wedge_shape(a0, b0, aQ, bQ, xl, yl);
+    Hbox = polyshape([xl(1) xl(2) xl(2) xl(1)], [yl(1) yl(1) yl(2) yl(2)]);
+
+    UA = polyshape();  for i = 1:numel(PA), UA = union(UA, PA{i}); end
+    UB = polyshape();  for j = 1:numel(PB), UB = union(UB, PB{j}); end
+    Hstable = subtract(subtract(Hzero, UA), UB);
+
+    figure('Color', 'w', 'Position', [80 80 1350 600]);
+    tiledlayout(1, 2, 'TileSpacing', 'compact');
+    nexttile; hold on; box on
+    plot_all_windows(FA, WFA, FB, WFB, a0, b0, aQ, bQ, tip, colA, colB, Vfit);
+
+    nexttile; hold on; box on
+    h = gobjects(0, 1);  labs = {};
+    h(end+1,1) = plot(subtract(Hbox, Hzero), 'FaceColor', [0.82 0.82 0.82], 'FaceAlpha', 0.6, 'EdgeColor', 'none');
+    labs{end+1,1} = 'zero mode unstable (outside the assumption)';
+    if area(Hstable) > 0
+        h(end+1,1) = plot(Hstable, 'FaceColor', [0.55 0.85 0.55], 'FaceAlpha', 0.45, 'EdgeColor', 'none');
+        labs{end+1,1} = 'stable';
+    end
+    for i = 1:numel(PA)
+        hi = plot(PA{i}, 'FaceColor', colA, 'FaceAlpha', 0.35, 'EdgeColor', colA*0.7, 'LineWidth', 0.5);
+        if i == 1, h(end+1,1) = hi; labs{end+1,1} = 'one eigenvalue with Re > 0 at each mode of the window (Theorem A)'; end %#ok<AGROW>
+    end
+    for j = 1:numel(PB)
+        Pj = subtract(PB{j}, UA);
+        if area(Pj) == 0, continue, end
+        hj = plot(Pj, 'FaceColor', colB, 'FaceAlpha', 0.35, 'EdgeColor', colB*0.7, 'LineWidth', 0.5);
+        if ~any(strcmp(labs, 'two eigenvalues with Re > 0 at each mode of the window (Theorem B)'))
+            h(end+1,1) = hj; labs{end+1,1} = 'two eigenvalues with Re > 0 at each mode of the window (Theorem B)'; %#ok<AGROW>
+        end
+    end
+    % A point in a Theorem A and a Theorem B polygon is mixed unless the B window lies in the A window.
+    for i = 1:numel(PA)
+        for j = 1:numel(PB)
+            if WB(j,1) >= WA(i,1) && WB(j,2) <= WA(i,2), continue, end
+            Pij = intersect(PA{i}, PB{j});
+            if area(Pij) == 0, continue, end
+            hm = plot(Pij, 'FaceColor', colM, 'FaceAlpha', 0.5, 'EdgeColor', colM*0.7, 'LineWidth', 0.5);
+            if ~any(strcmp(labs, 'mixed: one eigenvalue at some modes, two at others'))
+                h(end+1,1) = hm; labs{end+1,1} = 'mixed: one eigenvalue at some modes, two at others'; %#ok<AGROW>
+            end
+        end
+    end
+    minArea = 0.004 * diff(xl) * diff(yl);      % windows too small to label are printed instead
+    label_windows(PA, WA, colA*0.6, minArea);
+    label_windows(PB, WB, colB*0.6, minArea);
+
+    % Wedge boundaries and tip (double zero eigenvalue at the zero mode).
+    plot(xl, a0*xl + b0, '-', 'Color', [0.3 0.3 0.3], 'LineWidth', 0.75, 'HandleVisibility', 'off');
+    plot(xl, aQ*xl + bQ, '-', 'Color', [0.3 0.3 0.3], 'LineWidth', 0.75, 'HandleVisibility', 'off');
+    h(end+1,1) = plot(tip(1), tip(2), 'kp', 'MarkerFaceColor', 'k', 'MarkerSize', 10);
+    labs{end+1,1} = 'wedge tip: C_2 = e_2, double zero eigenvalue';
+    if xl(1) < 0 && xl(2) > 0
+        plot([0 0], yl, 'k:', 'LineWidth', 1, 'HandleVisibility', 'off');
+        text(0, yl(2), ' C_2 = 0', 'VerticalAlignment', 'top', 'FontSize', 9);
     end
 
-    figure('Color', 'w'); hold on; grid on
-    hG = plot(Hg, 'FaceColor', [0.6 0.6 0.6], 'FaceAlpha', 0.15, 'EdgeColor', 'none');
-    hZ = plot(Hzero, 'FaceColor', [0.2 0.7 0.3], 'FaceAlpha', 0.12, 'EdgeColor', 'none');
-    n = numel(VA);
-    cols = lines(n);
-    hA = gobjects(n, 1);  hB = gobjects(n, 1);
-    for k = 1:n
-        if ~isempty(VA{k})
-            hA(k) = draw_region(VA{k}, namesA{k}, cols(k,:), cols(k,:), HA, '-', 'o');
-        end
-        if ~isempty(VB{k})
-            hB(k) = draw_region(VB{k}, namesB{k}, cols(k,:), cols(k,:), HB, '--', 's');
-        end
+    % Edges of the stable region: it is the convex set max Q-lines < C3 < min g-lines over {0, Z}.
+    kU = [0 ZA];  kL = [0 ZB];
+    [aU, bU] = g_lines(f, d, kU);
+    [aL, bL] = q_lines(f, d, kL);
+    aAll = [aU aL];  bAll = [bU bL];
+    [I, J] = find(triu(true(numel(aAll)), 1));
+    xs = (bAll(J) - bAll(I)) ./ (aAll(I) - aAll(J));
+    xs = unique([xl(1), xs(isfinite(xs) & xs > xl(1) & xs < xl(2)), xl(2)]);
+    rngU = nan(numel(kU), 2);  rngL = nan(numel(kL), 2);
+    for s = 1:numel(xs) - 1
+        xm = (xs(s) + xs(s+1)) / 2;
+        [U, iU] = min(aU*xm + bU);
+        [Lo, iL] = max(aL*xm + bL);
+        if U <= Lo, continue, end
+        rngU(iU,:) = [min(rngU(iU,1), xs(s)), max(rngU(iU,2), xs(s+1))];
+        rngL(iL,:) = [min(rngL(iL,1), xs(s)), max(rngL(iL,2), xs(s+1))];
     end
-    % the zero-mode boundaries, always drawn
-    h0 = plot(xl, a0*xl + b0, 'k-',  'LineWidth', 1.5);
-    hQ = plot(xl, aQ*xl + bQ, 'k--', 'LineWidth', 1.5);
-    % of the other g boundaries, draw only the largest- and smallest-slope ones crossing the axes
-    % (k = 0 has the largest slope and is already drawn above)
-    ends = [a*xl(1) + b; a*xl(2) + b];
-    jCross = find(min(ends, [], 1) <= yl(2) & max(ends, [], 1) >= yl(1));
-    [~, iMax] = max(a(jCross));
-    [~, iMin] = min(a(jCross));
-    jDraw = jCross(unique([iMax iMin]));
-    jDraw = jDraw(kHP(jDraw) ~= 0);
-    hL = gobjects(0);
-    for j = jDraw
-        hL = plot(xl, a(j)*xl + b(j), '-', 'Color', [0.35 0.35 0.35], 'LineWidth', 0.75);
-        % label each line where it leaves the axes
-        xe = [xl(2), (yl(1) - b(j))/a(j), (yl(2) - b(j))/a(j)];
-        ye = [a(j)*xl(2) + b(j), yl(1), yl(2)];
-        i = find(xe >= xl(1) & xe <= xl(2) & ye >= yl(1) & ye <= yl(2), 1);
-        if ~isempty(i)
-            text(xe(i), ye(i), sprintf('k=%d', kHP(j)), 'Color', [0.35 0.35 0.35], 'FontSize', 8, ...
-                 'HorizontalAlignment', 'right', 'VerticalAlignment', 'bottom');
-        end
+    edgeNames = {'zero-mode eigenvalue crosses 0: g(0) = 0', 'mode k steady (Turing) onset: g(-k^2) = 0', ...
+                 'uniform Hopf: Q(0) = 0', 'mode k Hopf: Q(-k^2) = 0'};
+    edgeStyle = {{'k', '-'}, {colA*0.7, '-'}, {'k', '--'}, {colB*0.8, '--'}};
+    shown = false(1, 4);
+    for u = find(~isnan(rngU(:,1)))'
+        t = 1 + (kU(u) > 0);
+        hE = plot(rngU(u,:), aU(u)*rngU(u,:) + bU(u), 'Color', edgeStyle{t}{1}, 'LineStyle', edgeStyle{t}{2}, 'LineWidth', 2.5);
+        if ~shown(t), h(end+1,1) = hE; labs{end+1,1} = edgeNames{t}; shown(t) = true; end %#ok<AGROW>
+        if kU(u) > 0, label_edge(rngU(u,:), aU(u), bU(u), kU(u), xl, yl); end
     end
+    for u = find(~isnan(rngL(:,1)))'
+        t = 3 + (kL(u) > 0);
+        hE = plot(rngL(u,:), aL(u)*rngL(u,:) + bL(u), 'Color', edgeStyle{t}{1}, 'LineStyle', edgeStyle{t}{2}, 'LineWidth', 2.5);
+        if ~shown(t), h(end+1,1) = hE; labs{end+1,1} = edgeNames{t}; shown(t) = true; end %#ok<AGROW>
+        if kL(u) > 0, label_edge(rngL(u,:), aL(u), bL(u), kL(u), xl, yl); end
+    end
+
     xlim(xl); ylim(yl);
     xlabel('C_2'); ylabel('C_3');
-    title({sprintf('Theorems A and B with the half-planes g(-k^2) < 0,  k = %d..%d', kHP(1), kHP(end)), ...
-           sprintf('S_\\phi = %g,  S_\\theta = %g,  tr L(0) = %g', S, S_theta, trL0), ...
-           'solid: \phi-polygon (dark: in the zero-mode wedge),  dashed: \theta-polygon (dark: in the half-planes)'});
-    kA = isgraphics(hA);  kB = isgraphics(hB);
-    legend([hA(kA); hB(kB); hG; hZ; h0; hQ; hL(:)], ...
-           [cellfun(@(t) ['\phi:  ' t{1}],   labA(kA), 'UniformOutput', false); ...
-            cellfun(@(t) ['\theta:  ' t{1}], labB(kB), 'UniformOutput', false); ...
-            {'g(-k^2) < 0 for all k in kHP'}; {'zero-mode wedge: g(0) < 0, Q(0) > 0'}; ...
-            {'g(0) = 0'}; {'Q(0) = 0'}; repmat({'g(-k^2) = 0, smallest slope'}, numel(hL), 1)], ...
-           'Location', 'best');
-
-    % Does a half-plane outside kHP cut the region shown?
-    kAll = 0:max(200, kHP(end));
-    [aAll, bAll] = g_lines(f, d, kAll);
-    xx = linspace(xl(1), xl(2), 400);
-    [env, iMin] = min(aAll(:)*xx + bAll(:), [], 1);
-    missing = setdiff(kAll(iMin(env <= yl(2))), kHP);
-    if ~isempty(missing)
-        warning('half-planes outside kHP also cut this figure, at k = %s; extend kHP to include them.', ...
-                mat2str(missing));
+    if e2 >= 0
+        note = 'e_2 \geq 0: no mode k \geq 1 can have Q < 0 or a Hopf bifurcation (Theorem E)';
+    else
+        note = 'e_2 < 0: the wedge lies in C_2 < e_2 < 0, so C_2 > 0 is excluded';
     end
+    title({'Map of the wedge (stable zero mode)', ...
+           sprintf('f = (%g, %g, %g),  tr L(0) = %g,  e_2 = %g', f, trL0, e2), note});
+    legend(h, labs, 'Location', 'bestoutside');
+
+    fprintf('Cycle-space map: e2 = %g, wedge tip (C2,C3) = (%g, %g)\n', e2, tip);
+    modes = @(Z) strtrim([num2str(Z) repmat('none', 1, isempty(Z))]);
+    fprintf('  modes with R < 0 (g lines needed besides k = 0):  %s\n', modes(ZA));
+    fprintf('  modes with Rbar < 0 (Q lines needed besides k = 0): %s\n', modes(ZB));
+    print_windows('Theorem A', PA, WA);
+    print_windows('Theorem B', PB, WB);
+end
+
+function plot_all_windows(FA, WFA, FB, WFB, a0, b0, aQ, bQ, tip, colA, colB, V)
+% Every Theorem A (steady-state) and Theorem B (Hopf) polygon on the current axes.  Darker fill marks
+% the part inside the zero-mode wedge.  A centre marker keeps very small polygons visible.
+% The axes fit the points V, so larger polygons may run off them; zoom out to see those.
+    if size(V, 1) == 1
+        x0 = tip(1) - max(1, abs(tip(1)));
+        V = [tip; x0, a0*x0 + b0; x0, aQ*x0 + bQ];
+    end
+    [xl, yl] = axis_limits(V);
+    Hzero = wedge_shape(a0, b0, aQ, bQ, xl, yl);
+    h = gobjects(0, 1);  labs = {};
+    h(end+1,1) = plot(Hzero, 'FaceColor', [0.55 0.85 0.55], 'FaceAlpha', 0.3, 'EdgeColor', 'none');
+    labs{end+1,1} = 'zero-mode wedge';
+    h = [h; draw_windows(FA, WFA, Hzero, colA, '-')];
+    if ~isempty(FA), labs{end+1,1} = 'steady-state windows (Theorem A)'; end
+    h = [h; draw_windows(FB, WFB, Hzero, colB, '--')];
+    if ~isempty(FB), labs{end+1,1} = 'Hopf windows (Theorem B)'; end
+    plot(xl, a0*xl + b0, 'k-',  'LineWidth', 1, 'HandleVisibility', 'off');
+    plot(xl, aQ*xl + bQ, 'k--', 'LineWidth', 1, 'HandleVisibility', 'off');
+    plot(tip(1), tip(2), 'kp', 'MarkerFaceColor', 'k', 'MarkerSize', 9, 'HandleVisibility', 'off');
+    xlim(xl); ylim(yl);
+    xlabel('C_2'); ylabel('C_3');
+    title({'Steady-state and Hopf windows', 'solid line: g(0) = 0,  dashed line: Q(0) = 0'});
+    legend(h, labs, 'Location', 'best');
+end
+
+function V = smallest_polygon_vertices(F)
+% Vertices of the smallest polygon in F (empty if F is empty).
+    V = zeros(0, 2);
+    if isempty(F), return, end
+    [~, i] = min(cellfun(@area, F));
+    V = F{i}.Vertices;
+end
+
+function hFirst = draw_windows(P, W, Hzero, col, ls)
+% Fill the polygons, darken their part in the wedge, label each by its window.
+    hFirst = gobjects(0, 1);
+    for i = 1:numel(P)
+        hi = plot(P{i}, 'FaceColor', col, 'FaceAlpha', 0.15, 'EdgeColor', col*0.7, 'LineStyle', ls);
+        if i == 1, hFirst = hi; end
+        Pin = intersect(P{i}, Hzero);
+        if area(Pin) > 0
+            plot(Pin, 'FaceColor', col, 'FaceAlpha', 0.45, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+        end
+        [cx, cy] = centroid(P{i});
+        plot(cx, cy, '.', 'Color', col*0.7, 'MarkerSize', 8, 'HandleVisibility', 'off');
+        text(cx, cy, sprintf(' %d..%d', W(i,:)), 'Color', col*0.6, 'FontSize', 7, 'Clipping', 'on');
+    end
+end
+
+function H = wedge_shape(a0, b0, aQ, bQ, xl, yl)
+% The rectangle xl-by-yl intersected with g(0) < 0 and Q(0) > 0.
+    H = intersect(g_halfplanes_shape(a0, b0, xl, yl), halfplane_shape(aQ, bQ, xl, yl));
+end
+
+function [ZA, ZB] = needed_modes(f, d, phi, theta, e2)
+% Modes k >= 1 with R(k^2) < 0 and with Rbar(k^2) < 0.  At every other mode, the g and Q conditions
+% hold throughout the wedge (Theorem D).
+    delta = prod(d);
+    xi2 = phi(1)*phi(2) + phi(1)*phi(3) + phi(2)*phi(3);
+    pCR = d(1)+d(2);  pRr = d(2)+d(3);  pCr = d(1)+d(3);
+    P = pCR*pCr*pRr;
+    cbar = pCR*(e2 + f(3)^2) + pCr*f(2)^2 + pRr*(e2 + f(1)^2);
+    ZA = modes_below_zero(delta, -delta*sum(phi), delta*xi2 - d(2)*e2);
+    ZB = modes_below_zero(P, -P*sum(theta), cbar);
+end
+
+function Z = modes_below_zero(A, B, C)
+% Integers k >= 1 with A*k^4 + B*k^2 + C < 0, for A > 0.
+    disc = B^2 - 4*A*C;
+    Z = zeros(1, 0);
+    if disc <= 0, return, end
+    qLo = (-B - sqrt(disc)) / (2*A);
+    qHi = (-B + sqrt(disc)) / (2*A);
+    k = 1:floor(sqrt(max(qHi, 0)));
+    Z = k(k.^2 > qLo & k.^2 < qHi);
+end
+
+function W = all_windows(Z)
+% Every window a..b with a, b in Z, one row [a b] per window.
+    W = zeros(0, 2);
+    for a = Z
+        for b = Z(Z >= a)
+            W(end+1,:) = [a b]; %#ok<AGROW>
+        end
+    end
+end
+
+function [P, W] = window_polygons(W0, vertex_fun)
+% The non-empty polygon of each window in the rows of W0, and those windows.
+    P = cell(1, 0);  W = zeros(0, 2);
+    for i = 1:size(W0, 1)
+        a = W0(i,1);  b = W0(i,2);
+        V = vertex_fun(-(b+1)^2, -a^2, -b^2, -(a-1)^2 + 0);
+        if isempty(V), continue, end
+        [~, order] = sort(atan2(V(:,2) - mean(V(:,2)), V(:,1) - mean(V(:,1))));
+        Pab = polyshape(V(order,1), V(order,2));
+        if area(Pab) > 0
+            P{end+1} = Pab;  W(end+1,:) = [a b]; %#ok<AGROW>
+        end
+    end
+end
+
+function [Pout, Wout] = clip_polygons(P, W, H)
+% Intersect each polygon with H and drop those left with no area.
+    Pout = cell(1, 0);  Wout = zeros(0, 2);
+    for i = 1:numel(P)
+        Pi = intersect(P{i}, H);
+        if area(Pi) > 0
+            Pout{end+1} = Pi;  Wout(end+1,:) = W(i,:); %#ok<AGROW>
+        end
+    end
+end
+
+function label_windows(P, W, col, minArea)
+    for i = 1:numel(P)
+        if area(P{i}) < minArea, continue, end
+        [cx, cy] = centroid(P{i});
+        text(cx, cy, sprintf('%d..%d', W(i,:)), 'Color', col, 'FontSize', 8, 'HorizontalAlignment', 'center');
+    end
+end
+
+function label_edge(rng, a, b, k, xl, yl)
+    xm = mean(rng);  ym = a*xm + b;
+    if xm > xl(1) && xm < xl(2) && ym > yl(1) && ym < yl(2)
+        text(xm, ym, sprintf(' k=%d', k), 'FontSize', 8, 'FontWeight', 'bold', 'VerticalAlignment', 'bottom');
+    end
+end
+
+function print_windows(name, P, W)
+    if isempty(P)
+        fprintf('  %s: no window meets the wedge\n', name);
+        return
+    end
+    fprintf('  %s windows in the wedge (area):', name);
+    for i = 1:numel(P), fprintf('  %d..%d (%.3g)', W(i,:), area(P{i})); end
+    fprintf('\n');
+end
+
+function [a, b] = q_lines(f, d, k)
+% Q(-k^2) > 0  <=>  C3 > a*C2 + b, at each wavenumber k.
+    g = f(:) - d(:) * (k(:)'.^2);               % 3-by-numel(k): g_i = f_ii - d_i k^2
+    a = -(g(1,:) + g(3,:));
+    b = (g(1,:) + g(2,:)) .* (g(1,:) + g(3,:)) .* (g(2,:) + g(3,:));
 end
 
 function [a, b] = g_lines(f, d, k)
