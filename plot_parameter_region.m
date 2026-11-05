@@ -14,7 +14,7 @@
 %
 % Figure 1: Theorem A, one subplot per row of msM.
 % Figure 2, left: every Theorem A (steady-state) and Theorem B (Hopf) polygon on one plane.
-% Figure 2, right: exact map of the zero-mode wedge (the standing assumption of theorems.tex).
+% Figure 2, right: exact map of the zero-mode wedge, assuming the zero mode is stable.
 %           It lists every window that can occur, so it does not depend on kappa1 and kappa2.
 
 %% ---- parameters (edit these) ----
@@ -39,8 +39,8 @@
 % Set 4: same sum as Set 1, so the same picture shifted by -9 along C2.
 % fcc = 4.0;  frr = -4.0;  frhorho = -2.0;
 
-% Set 5: Rac autocatalysis with tr L(0) > 0, which violates the standing assumption that the zero
-% mode is stable (see theorems_general_trace.tex for this case).
+% Set 5: Rac autocatalysis with tr L(0) > 0, which violates the assumption in Figure 2 that the zero
+% mode is stable.
 % fcc = -2.0;  frr = 8.0;  frhorho = -3.0;
 
 % Set 6 (with the diffusivities below): steady-state and Hopf regions both inside the wedge, and
@@ -181,8 +181,7 @@ end
 
 function plot_cycle_space(f, d, phi, theta, kwin)
 % Left panel: every polygon of both theorems, for the windows in kwin and those that can reach the wedge.
-% Right panel: map of the (C2,C3) plane under the standing assumption that the zero mode is stable
-% (theorems.tex).
+% Right panel: map of the (C2,C3) plane under the assumption that the zero mode is stable.
 % Inside the wedge g(0) < 0, Q(0) > 0, only windows of modes in ZA (for g) and ZB (for Q) can occur,
 % so this map is complete, whatever kappa1 and kappa2 are.  It shows, at every point of the wedge,
 % how many eigenvalues each mode has with positive real part, and it marks which bifurcation
@@ -558,7 +557,7 @@ function [V, names, geom] = region_vertices_phi(d, phi, m, sn, s1, M)
 end
 
 function [V, names, geom] = region_vertices_theta(d, th, m, sn, s1, M)
-% Theorem B: vertices of the set defined by the Q inequalities (see theorems.tex), in terms of
+% Theorem B: vertices of the set defined by the Q inequalities, in terms of
 % theta_ij = (f_ii+f_jj)/(d_i+d_j), th = [thetaCR thetaRhoR thetaCRho].
     S = -sum(th);
     [pairs, names, geom] = vertex_table(S, m, sn, s1, M, '\overline{V}');
