@@ -55,10 +55,10 @@ Parameters of the three-node RD model.
 Reaction terms (u = (C,R,rho)):
   f_C   = bC  + aC  * hillI(rho, KC,   m)                          - gC  * C
   f_R   = bR  + aR  * hillA(C,   KR,   m)                          - gR  * R
-  f_rho = brho+ arho1*hillI(C,   Krho1,m) + srho*arho2*hillX(R,Krho2,m) - grho* rho
+  f_rho = brho+ arho1*hillI(C,   Krho1,m) + arho2*hillX(R,Krho2,m)  - grho* rho
 
-  regime == :P  ->  hillX = hillA, srho = +1   (Rac activates Rho)
-  regime == :S  ->  hillX = hillI, srho = +1   (Rac inhibits Rho; term is decreasing)
+  regime == :P  ->  hillX = hillA   (Rac activates Rho)
+  regime == :S  ->  hillX = hillI   (Rac inhibits Rho; term is decreasing)
 """
 Base.@kwdef struct RDParams
     dC::Float64;  dR::Float64;  drho::Float64
@@ -174,9 +174,18 @@ Integrate to (numerical) steady state from a small random perturbation of
 the homogeneous state.  Returns a NamedTuple with the grid `x`, the final
 profiles `C,R,rho`, the homogeneous state `ustar`, the stopping time `t`,
 and the final max |du/dt| `resid`.
+
+Initial conditions (`ic`):
+  :perturb  relative white noise of size `amp`
+  :mode     cos(seed_mode*x) of size `amp` (C, R up and rho down), plus
+            relative white noise of size `noise_frac*amp`
+  :step     half-domain winner-take-all probe (ignores `amp`)
 """
 function simulate(p::RDParams; N = 257, L = π, tmax = 4000.0, dt = 4e-3,
-                  seed = 1, amp = 1e-2, tol = 1e-8, ic = :perturb, seed_mode = 0)
+                  seed = 1, amp = 1e-2, tol = 1e-8, ic = :perturb, seed_mode = 0,
+                  noise_frac = 0.02)
+    ic in (:perturb, :mode, :step) ||
+        throw(ArgumentError("unknown ic = :$ic (expected :perturb, :mode or :step)"))
     x  = range(0, L; length = N)
     h  = step(x)
     us, ok = homogeneous_state(p)
@@ -202,9 +211,10 @@ function simulate(p::RDParams; N = 257, L = π, tmax = 4000.0, dt = 4e-3,
         rho .+= amp .* us[3] .* randn(rng, N)
     elseif ic === :mode            # seed the prescribed admissible mode + tiny noise
         cx = cos.(seed_mode .* x)
-        C   .+= amp .* us[1] .* cx .+ 1e-3 .* us[1] .* randn(rng, N)
-        R   .+= amp .* us[2] .* cx .+ 1e-3 .* us[2] .* randn(rng, N)
-        rho .-= amp .* us[3] .* cx .+ 1e-3 .* us[3] .* randn(rng, N)
+        σn = noise_frac * amp
+        C   .+= amp .* us[1] .* cx .+ σn .* us[1] .* randn(rng, N)
+        R   .+= amp .* us[2] .* cx .+ σn .* us[2] .* randn(rng, N)
+        rho .+= amp .* us[3] .* cx .+ σn .* us[3] .* randn(rng, N)
     elseif ic === :step            # winner-take-all probe: half domain high
         half = N ÷ 2
         C[1:half]   .*= 1.6;  C[half+1:end]   .*= 0.5

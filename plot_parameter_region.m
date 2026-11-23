@@ -39,13 +39,9 @@
 % Set 4: same sum as Set 1, so the same picture shifted by -9 along C2.
 % fcc = 4.0;  frr = -4.0;  frhorho = -2.0;
 
-% Set 5: Rac autocatalysis with tr L(0) > 0, which violates the assumption in Figure 2 that the zero
-% mode is stable.
-% fcc = -2.0;  frr = 8.0;  frhorho = -3.0;
-
 % Set 6 (with the diffusivities below): steady-state and Hopf regions both inside the wedge, and
 % mode k = 1 has both a steady-state and a Hopf edge on the stable region.
-% fcc = -7.5;  frr = 3.5;  frhorho = -1.0;
+%fcc = -7.5;  frr = 3.5;  frhorho = -1.0;
 
 % Set 7: a wide range of steady-state patterns under mutual inhibition (C2 > 0, C3 < 0): each of the
 % modes k = 1..8 can be the only unstable mode, and windows reach up to k = 12.
@@ -54,7 +50,7 @@ fcc = -5.0;  frr = -16.0;  frhorho = -5.0;
 % Diffusivities for the baseline and Sets 1-5 and 7:
 dc = 0.05;  dr = 0.5;  drho = 0.05;     % d_i > 0
 % Diffusivities for Set 6:
-% dc = 5.0;  dr = 0.5;  drho = 0.2;
+%dc = 5.0;  dr = 0.5;  drho = 0.2;
 d   = [dc dr drho];         % [dC dR drho]
 
 
