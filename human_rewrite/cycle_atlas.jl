@@ -17,9 +17,11 @@
 
 include("cdc42_rac_rho.jl")
 
+using LazySets
+using Random
+
 # --------------------------- fixed parameters ------------------------
-# Diagonal of the Jacobian.  No species regulates itself, so f_ii comes
-# only from linear decay: f_ii = -g_i.
+# Diagonal of the Jacobian
 const f_CC     = -g_C
 const f_RR     = -g_R
 const f_rhorho = -g_rho
@@ -30,8 +32,18 @@ const phi_R   = f_RR     / d_R
 const phi_rho = f_rhorho / d_rho
 const S_phi   = -(phi_C + phi_R + phi_rho)
 
+# theta_ij = (f_ii + f_jj) / (d_i + d_j) and S_theta = -(theta_CR + theta_Crho + theta_Rrho)
+const theta_CR   = (f_CC + f_RR)     / (d_C + d_R)
+const theta_Crho = (f_CC + f_rhorho) / (d_C + d_rho)
+const theta_Rrho = (f_RR + f_rhorho) / (d_R + d_rho)
+const S_theta    = -(theta_CR + theta_Crho + theta_Rrho)
+
 # Bands k_1..k_2 are checked for 1 <= k_1 <= k_2 <= k_max
 const k_max = 4
+
+# Max and minimum wave numbers to consider
+const κ_min = 1
+const κ_max = 4
 
 # --------------------------- vertex pairs ----------------------------
 """
@@ -56,9 +68,9 @@ end
 """
     vertex_pairs(S, m, sigma_1, sigma_n, M)
 
-The pairs (x, y) of the vertices V_xy of the region for a band, read off
-from the table by the value of S = S_phi.  Each row of the table is one
-branch below.  The thresholds are in increasing order because
+The pairs (x, y) of the vertices of the region for a band, read off from
+the table by the value of S (S_phi for the steady-state theorem, S_theta
+for the Hopf theorem).  Each row of the table is one branch below.  The thresholds are in increasing order because
 m + M < sigma_1 + sigma_n for the modes -k^2.
 """
 function vertex_pairs(S, m, sigma_1, sigma_n, M)
@@ -79,3 +91,131 @@ function vertex_pairs(S, m, sigma_1, sigma_n, M)
         return [(sigma_1, M), (sigma_1, sigma_n), (m, M), (m, sigma_n)]
     end
 end
+
+# --------------------------- band polygons in (C_2, C_3) --------------
+"""
+    polygon_steady_state(k_1, k_2)
+
+Polygon of the steady-state theorem for the band k_1..k_2, as a LazySets
+VPolygon in (C_2, C_3).  Its vertices are the points V_xy at which
+g(mu) = det L(mu) has roots x, y and z = S_phi - x - y, for the pairs
+(x, y) from `vertex_pairs`.  Returns `nothing` if the polygon is empty or
+has zero area.
+"""
+function polygon_steady_state(k_1, k_2)
+    m, sigma_1, sigma_n, M = band_modes(k_1, k_2)
+    pairs = vertex_pairs(S_phi, m, sigma_1, sigma_n, M)
+    isempty(pairs) && return nothing
+
+    xi2 = phi_C * phi_R + phi_C * phi_rho + phi_R * phi_rho
+    xi3 = phi_C * phi_R * phi_rho
+
+    vertices = Vector{Float64}[]
+    for (x, y) in pairs
+        z   = S_phi - x - y
+        C_2 = d_C * d_rho * (xi2 - x * y - (x + y) * z)
+        C_3 = f_RR * C_2 - d_C * d_R * d_rho * (x * y * z + xi3)
+        push!(vertices, [C_2, C_3])
+    end
+
+    polygon = VPolygon(vertices)        # LazySets sorts the vertices itself
+    area(polygon) > 0 || return nothing
+    return polygon
+end
+
+"""
+    polygon_hopf(k_1, k_2)
+
+Polygon of the Hopf theorem for the band k_1..k_2, as a LazySets VPolygon
+in (C_2, C_3).  Its vertices are the points V̄_xy at which
+Q(mu) = a_1 a_2 - a_3 has roots x, y and z = S_theta - x - y, for the
+pairs (x, y) from `vertex_pairs`.  Returns `nothing` if the polygon is
+empty or has zero area.
+"""
+function polygon_hopf(k_1, k_2)
+    m, sigma_1, sigma_n, M = band_modes(k_1, k_2)
+    pairs = vertex_pairs(S_theta, m, sigma_1, sigma_n, M)
+    isempty(pairs) && return nothing
+
+    zeta2 = theta_CR * theta_Crho + theta_CR * theta_Rrho + theta_Crho * theta_Rrho
+    zeta3 = theta_CR * theta_Crho * theta_Rrho
+
+    p_CR   = d_C + d_R
+    p_Crho = d_C + d_rho
+    p_Rrho = d_R + d_rho
+
+    vertices = Vector{Float64}[]
+    for (x, y) in pairs
+        z   = S_theta - x - y
+        C_2 = p_CR * p_Rrho * (zeta2 - x * y - (x + y) * z)
+        C_3 = p_CR * p_Crho * p_Rrho * (x * y * z + zeta3) - (f_CC + f_rhorho) * C_2
+        push!(vertices, [C_2, C_3])
+    end
+
+    polygon = VPolygon(vertices)        # LazySets sorts the vertices itself
+    area(polygon) > 0 || return nothing
+    return polygon
+end
+
+# --------------------------- stable zero mode ------------------------
+"""
+    intersect_zero_mode_stable(polygon)
+
+Intersection of `polygon` with the region where the zero mode is stable,
+{g(0) < 0} ∩ {Q(0) > 0}.  Both conditions are half-planes in (C_2, C_3):
+
+    g(0) = f_CC f_RR f_rhorho - f_RR C_2 + C_3 < 0
+        <=>  -f_RR C_2 + C_3 < -f_CC f_RR f_rhorho
+
+    Q(0) = -(f_CC + f_RR)(f_CC + f_rhorho)(f_RR + f_rhorho) + (f_CC + f_rhorho) C_2 + C_3 > 0
+        <=>  -(f_CC + f_rhorho) C_2 - C_3 < -(f_CC + f_RR)(f_CC + f_rhorho)(f_RR + f_rhorho)
+
+A LazySets HalfSpace(a, b) is the set a . (C_2, C_3) <= b.  The zero mode
+also needs tr L(0) = f_CC + f_RR + f_rhorho < 0, which does not depend on
+(C_2, C_3).  Returns `nothing` if `polygon` is `nothing` or the
+intersection is empty or has zero area.
+"""
+function intersect_zero_mode_stable(polygon)
+    polygon === nothing && return nothing
+
+    g0_negative = HalfSpace([-f_RR, 1.0], -f_CC * f_RR * f_rhorho)
+    Q0_positive = HalfSpace([-(f_CC + f_rhorho), -1.0],
+                            -(f_CC + f_RR) * (f_CC + f_rhorho) * (f_RR + f_rhorho))
+
+    region = intersection(intersection(polygon, g0_negative), Q0_positive)
+    isempty(region) && return nothing
+    area(region) > 0 || return nothing
+    return region
+end
+
+# --------------------------- sampling the band polygons --------------
+
+"""
+    sample_band(k_1, k_2, n_points; seed = 1)
+
+Uniform random points (C_2, C_3) in the band k_1..k_2's polygon for the
+steady-state theorem (A) and for the Hopf theorem (B), each cut to the
+region where the zero mode is stable (`intersect_zero_mode_stable`).
+Returns a named tuple `(steady_state, hopf)` of vectors of [C_2, C_3]; a
+vector is empty when its cut region is.
+
+Points are drawn uniformly from the polygon's bounding box and kept if
+they lie in the polygon (LazySets' RejectionSampler).  LazySets' default
+sampler is not used: it can switch to a non-uniform method that ignores
+the seed.
+"""
+function sample_band(k_1, k_2, n_points; seed = 1)
+    rng = Xoshiro(seed)
+
+    region_A = intersect_zero_mode_stable(polygon_steady_state(k_1, k_2))
+    region_B = intersect_zero_mode_stable(polygon_hopf(k_1, k_2))
+
+    points_A = region_A === nothing ? Vector{Float64}[] :
+        LazySets.sample(region_A, n_points; sampler = LazySets.RejectionSampler(region_A), rng = rng)
+    points_B = region_B === nothing ? Vector{Float64}[] :
+        LazySets.sample(region_B, n_points; sampler = LazySets.RejectionSampler(region_B), rng = rng)
+
+    return (steady_state = points_A, hopf = points_B)
+end
+
+

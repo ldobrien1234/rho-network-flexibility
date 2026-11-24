@@ -1,0 +1,243 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{array}
+
+\newtheorem{theorem}{Theorem}
+\renewcommand{\thetheorem}{\Alph{theorem}}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\title{Unstable-mode theorems for the Cdc42--Rac--Rho network}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+
+Let $J$ be the Jacobian of the reaction terms at the homogeneous equilibrium,
+\[
+J=\begin{pmatrix} f_{CC} & 0 & f_{C\rho}\\ f_{RC} & f_{RR} & 0\\ f_{\rho C} & f_{\rho R} & f_{\rho\rho}\end{pmatrix},
+\qquad
+C_2=f_{C\rho}f_{\rho C},\qquad C_3=f_{RC}f_{\rho R}f_{C\rho},
+\]
+let $D=\operatorname{diag}(d_C,d_R,d_\rho)$ with $d_i>0$, and let $f_{ii}\in\mathbb{R}$. Let $\Lambda\subset(-\infty,0]$ be the spectrum of the Laplacian, with $0\in\Lambda$. A mode $\mu\in\Lambda$ has linearization $L(\mu)=J+\mu D$. Write
+\[
+g_i(\mu)=f_{ii}+\mu d_i,
+\qquad
+\det\bigl(\lambda I-L(\mu)\bigr)=\lambda^3+a_1(\mu)\lambda^2+a_2(\mu)\lambda+a_3(\mu).
+\]
+Then $a_1=-\operatorname{tr}L(\mu)$, $a_2=e_2(\mu)-C_2$ with $e_2=g_Cg_R+g_Cg_\rho+g_Rg_\rho$, and $a_3=-\det L(\mu)$. Define
+\begin{align}
+g(\mu)&=\det L(\mu)=g_Cg_Rg_\rho-C_2\,g_R+C_3, \label{eq:g}\\
+Q(\mu)&=a_1a_2-a_3=-(g_C+g_R)(g_C+g_\rho)(g_R+g_\rho)+C_2\,(g_C+g_\rho)+C_3. \label{eq:Q}
+\end{align}
+For fixed $f_{ii}$ and $d_i$, each of $g(\mu)$ and $Q(\mu)$ is affine in $(C_2,C_3)$. Each sign condition below is therefore a half-plane in the $(C_2,C_3)$ plane. In particular,
+\[
+Q(0)>0\iff C_3>-(f_{CC}+f_{\rho\rho})C_2+(f_{CC}+f_{RR})(f_{CC}+f_{\rho\rho})(f_{RR}+f_{\rho\rho}).
+\]
+
+Throughout, $m<\sigma_1\le\dots\le\sigma_n<M$ are consecutive elements of $\Lambda$ with $\sigma_i\neq0$, so $M\le0$. The modes $\sigma_1,\dots,\sigma_n$ are called the \emph{window}.
+
+\begin{lemma}\label{lem:count}
+Suppose $\operatorname{tr}L(\mu)<0$ and $g(\mu)\neq0$. If $g(\mu)>0$, then $L(\mu)$ has exactly one eigenvalue with positive real part. If $g(\mu)<0$ and $Q(\mu)>0$, it has none. If $g(\mu)<0$ and $Q(\mu)<0$, it has exactly two.
+\end{lemma}
+
+\begin{proof}
+The product of the eigenvalues is $g(\mu)$ and their sum is negative. If $g(\mu)>0$, the number with positive real part is odd, and it cannot be three, so it is one. If $g(\mu)<0$, the number is even. Since $a_1>0$ and $a_3>0$, the Routh--Hurwitz criterion says the number is zero exactly when $a_1a_2>a_3$, that is, when $Q(\mu)>0$.
+\end{proof}
+
+\section{Theorem A: one eigenvalue with positive real part}
+
+\begin{theorem}\label{thm:A}
+The modes $\sigma_1,\dots,\sigma_n$ are the only unstable modes at the homogeneous equilibrium, each with exactly one eigenvalue with positive real part, if and only if
+\begin{align}
+&g(\sigma_1)>0,\quad g(\sigma_n)>0,\quad g(m)<0,\quad g(M)<0,\quad g(0)<0, \label{eq:A-g}\\
+&\operatorname{tr}L(0)<0,\qquad Q(\eta)>0\ \text{ for all }\eta\in\Lambda\setminus\{\sigma_1,\dots,\sigma_n\}. \label{eq:A-Q}
+\end{align}
+\end{theorem}
+
+\begin{proof}
+Since $g$ is a cubic in $\mu$ with leading coefficient $d_Cd_Rd_\rho>0$, conditions \eqref{eq:A-g} hold exactly when its roots satisfy $x\in(m,\sigma_1)$, $y\in(\sigma_n,M)$ and $z>0$. Hence $g>0$ throughout the window and $g<0$ on the rest of $\Lambda$. Because $d_i>0$, $\operatorname{tr}L(0)<0$ gives $\operatorname{tr}L(\mu)<0$ for all $\mu\le0$, and sufficiency follows from Lemma~\ref{lem:count}. For necessity, stability of the mode $0$ forces $\operatorname{tr}L(0)<0$, and Lemma~\ref{lem:count} then gives the sign conditions at every mode.
+\end{proof}
+
+\paragraph{Region in $(C_2,C_3)$.} Let
+\[
+\phi_i=\frac{f_{ii}}{d_i},\quad S_\phi=-(\phi_C+\phi_R+\phi_\rho),\quad
+\xi_2=\phi_C\phi_R+\phi_C\phi_\rho+\phi_R\phi_\rho,\quad \xi_3=\phi_C\phi_R\phi_\rho.
+\]
+For real $x,y$, set $z=S_\phi-x-y$ and let $V_{xy}$ be the point at which $g$ has roots $x,y,z$:
+\[
+V_{xy}:\quad
+C_2=d_Cd_\rho\bigl(\xi_2-xy-(x+y)z\bigr),\qquad
+C_3=f_{RR}\,C_2-d_Cd_Rd_\rho\,(xyz+\xi_3).
+\]
+The set defined by \eqref{eq:A-g} is the interior of the convex polygon with the vertices below.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|c|c|}
+\hline
+$S_\phi$ & Set geometry & Vertices \\
+\hline
+$S_\phi\le m+\sigma_n$ & Empty & n/a \\
+\hline
+$m+\sigma_n<S_\phi<m+M$ & Triangle & $V_{m\sigma_n},V_{m0},V_{\sigma_n0}$ \\
+\hline
+$m+M<S_\phi<\sigma_1+\sigma_n$ & Quadrilateral & $V_{mM},V_{m\sigma_n},V_{M0},V_{\sigma_n0}$ \\
+\hline
+$\sigma_1+\sigma_n<S_\phi<\sigma_1+M$ & Pentagon & $V_{mM},V_{m\sigma_n},V_{\sigma_1\sigma_n},V_{\sigma_10},V_{M0}$ \\
+\hline
+$\sigma_1+M<S_\phi$ & Quadrilateral & $V_{\sigma_1M},V_{\sigma_1\sigma_n},V_{mM},V_{m\sigma_n}$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{remark}
+If $\sigma_1=\sigma_n$, the vertex $V_{\sigma_1\sigma_n}$ lies on an edge. The pentagon then has the shape of a quadrilateral, and the last row has the shape of a triangle. The polygon varies continuously with $S_\phi$ across every row boundary.
+\end{remark}
+
+\section{Theorem B: two eigenvalues with positive real part}
+
+\begin{theorem}\label{thm:B}
+The modes $\sigma_1,\dots,\sigma_n$ are the only unstable modes at the homogeneous equilibrium, each with exactly two eigenvalues with positive real part, if and only if
+\begin{align}
+&Q(\sigma_1)<0,\quad Q(\sigma_n)<0,\quad Q(m)>0,\quad Q(M)>0,\quad Q(0)>0, \label{eq:B-Q}\\
+&\operatorname{tr}L(0)<0,\qquad g(\eta)<0\ \text{ for all }\eta\in\Lambda. \label{eq:B-g}
+\end{align}
+\end{theorem}
+
+\begin{proof}
+Since $Q$ is a cubic in $\mu$ with leading coefficient $-(d_C+d_R)(d_C+d_\rho)(d_R+d_\rho)<0$, conditions \eqref{eq:B-Q} hold exactly when its roots satisfy $x\in(m,\sigma_1)$, $y\in(\sigma_n,M)$ and $z>0$. Hence $Q<0$ throughout the window and $Q>0$ on the rest of $\Lambda$. Sufficiency follows from Lemma~\ref{lem:count}. For necessity, stability of the mode $0$ forces $\operatorname{tr}L(0)<0$, and Lemma~\ref{lem:count} then gives the sign conditions at every mode.
+\end{proof}
+
+\begin{remark}
+The case $n=1$ is the single-mode statement: $\sigma\in\Lambda\setminus\{0\}$ is the unique unstable mode and has exactly two eigenvalues with positive real part if and only if $Q(\sigma)<0$, $Q(m)>0$, $Q(M)>0$, $Q(0)>0$, $\operatorname{tr}L(0)<0$, and $g(\eta)<0$ for all $\eta\in\Lambda$.
+\end{remark}
+
+\paragraph{Region in $(C_2,C_3)$.} Let $p_{ij}=d_i+d_j$, $P=p_{CR}\,p_{C\rho}\,p_{R\rho}$, and
+\[
+\theta_{ij}=\frac{f_{ii}+f_{jj}}{d_i+d_j},\quad
+S_\theta=-(\theta_{CR}+\theta_{C\rho}+\theta_{R\rho}),\quad
+\zeta_2=\theta_{CR}\theta_{C\rho}+\theta_{CR}\theta_{R\rho}+\theta_{C\rho}\theta_{R\rho},\quad
+\zeta_3=\theta_{CR}\theta_{C\rho}\theta_{R\rho}.
+\]
+For real $x,y$, set $z=S_\theta-x-y$ and let $\overline{V}_{xy}$ be the point at which $Q$ has roots $x,y,z$:
+\[
+\overline{V}_{xy}:\quad
+C_2=p_{CR}\,p_{R\rho}\bigl(\zeta_2-xy-(x+y)z\bigr),\qquad
+C_3=P\,(xyz+\zeta_3)-(f_{CC}+f_{\rho\rho})\,C_2.
+\]
+The set defined by \eqref{eq:B-Q} is the interior of the convex polygon given by the table for Theorem~\ref{thm:A}, with $S_\theta$ in place of $S_\phi$ and $\overline{V}$ in place of $V$. The conditions $g(\eta)<0$ further intersect it with the half-planes
+\[
+C_3<g_R(\eta)\,C_2-g_C(\eta)g_R(\eta)g_\rho(\eta),\qquad \eta\in\Lambda.
+\]
+When $\Lambda$ is infinite this is an infinite intersection of half-planes. For $\eta$ large enough that $g_R(\eta)<0$, the bound equals $|g_R|(g_Cg_\rho-C_2)$, so on any bounded range of $C_2$ only finitely many of these half-planes are active. Theorem~\ref{thm:B} requires $f_{CC}+f_{RR}+f_{\rho\rho}<0$ in addition to the conditions on $(C_2,C_3)$.
+
+\section{Reading the theorems together}
+
+\begin{theorem}\label{thm:count}
+The trace $\operatorname{tr}L(\mu)=(f_{CC}+f_{RR}+f_{\rho\rho})+\mu\,(d_C+d_R+d_\rho)$ is linear in $\mu$ with positive slope, so it has the unique root
+\[
+\mu^*=-\frac{f_{CC}+f_{RR}+f_{\rho\rho}}{d_C+d_R+d_\rho},
+\]
+and $\operatorname{tr}L(\mu)<0$ for $\mu<\mu^*$ and $\operatorname{tr}L(\mu)>0$ for $\mu>\mu^*$. Fix $\mu\in\Lambda$ and write $\operatorname{tr}=\operatorname{tr}L(\mu)$, $g=g(\mu)$, $Q=Q(\mu)$.
+\begin{enumerate}
+\item Suppose $\mu\neq\mu^*$ and that $g$ and $Q$ are nonzero. If $\mu<\mu^*$, then $L(\mu)$ has one eigenvalue with positive real part when $g>0$; when $g<0$, it has none if $Q>0$ and two if $Q<0$. If $\mu>\mu^*$, then $L(\mu)$ has two eigenvalues with positive real part when $g<0$; when $g>0$, it has one if $Q>0$ and three if $Q<0$.
+\item If $Q=0$ and $\operatorname{tr}\neq0$, the eigenvalues of $L(\mu)$ are $\operatorname{tr}$ and the roots of $\lambda^2+g/\operatorname{tr}=0$. If $g/\operatorname{tr}>0$, the mode has a pure imaginary pair $\pm i\omega$ with $\omega^2=g/\operatorname{tr}$, and the real part of this pair changes with $C_3$ at the nonzero rate $-\bigl(2(\operatorname{tr}^2+\omega^2)\bigr)^{-1}$. If $g/\operatorname{tr}<0$, the pair is real, $\pm\sqrt{-g/\operatorname{tr}}$, and no eigenvalue crosses the imaginary axis.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+A pure imaginary pair requires $Q=0$ and a zero eigenvalue requires $g=0$, so under the hypotheses of part 1 no eigenvalue lies on the imaginary axis. The case $\mu<\mu^*$ is Lemma~\ref{lem:count}. Suppose $\mu>\mu^*$, so $\operatorname{tr}>0$. The number with positive real part has the parity fixed by the sign of $g$, and it cannot be zero. So $g<0$ gives two. If $g>0$, it is one or three, and it is three exactly when $-L(\mu)$ is stable. Applying the Routh--Hurwitz criterion to $\lambda^3-a_1\lambda^2+a_2\lambda-a_3$, where $-a_1>0$ and $-a_3>0$, this holds exactly when $-a_1a_2>-a_3$, that is, when $Q<0$.
+
+For part 2, $Q=0$ means $a_3=a_1a_2$, so the characteristic polynomial is $(\lambda+a_1)(\lambda^2+a_2)$, with $a_1=-\operatorname{tr}$ and $a_2=a_3/a_1=g/\operatorname{tr}$. Since $C_3$ enters $a_3$ with coefficient $-1$, differentiating the characteristic polynomial at $\lambda=i\omega$ gives
+\[
+\frac{d\lambda}{dC_3}=\frac{-1}{2a_2-2a_1i\omega},
+\qquad
+\frac{d\operatorname{Re}\lambda}{dC_3}=\frac{-1}{2(a_1^2+a_2)}.
+\qedhere
+\]
+\end{proof}
+
+By part 2, the line $Q(\mu)=0$ is a Hopf locus for the mode $\mu$ exactly where $g(\mu)$ and $\operatorname{tr}L(\mu)$ have the same sign. Crossing it changes the count at that mode from $0$ to $2$ if $\mu<\mu^*$, and from $1$ to $3$ if $\mu>\mu^*$. Whether the resulting cycle is stable depends on higher derivatives of the reaction terms, which $(C_2,C_3)$ does not determine.
+
+\medskip
+
+For the remaining results, assume $\Lambda$ is discrete and unbounded below, and that $g(\eta)\neq0$ and $Q(\eta)\neq0$ for all $\eta\in\Lambda$. For a window $W=\{\sigma_1,\dots,\sigma_n\}\subset\Lambda\setminus\{0\}$, let $\mathcal{P}_A(W)$ and $\mathcal{P}_B(W)$ be the open polygons of Theorems~\ref{thm:A} and~\ref{thm:B} given by the table. A polygon is empty when its row of the table is empty.
+
+\begin{theorem}\label{thm:complement}
+\begin{enumerate}
+\item If $g(0)<0$, then $\{\eta\in\Lambda:g(\eta)>0\}$ is either empty or a window $W$. In the second case, $(C_2,C_3)$ lies in $\mathcal{P}_A(W)$ and in no other Theorem~\ref{thm:A} polygon. Hence
+\[
+\{g(\eta)<0\ \text{for all }\eta\in\Lambda\}=\{g(0)<0\}\setminus\bigcup_W\mathcal{P}_A(W).
+\]
+\item If $Q(0)>0$, then $\{\eta\in\Lambda:Q(\eta)<0\}$ is either empty or a window $W$. In the second case, $(C_2,C_3)$ lies in $\mathcal{P}_B(W)$ and in no other Theorem~\ref{thm:B} polygon. Hence
+\[
+\{Q(\eta)>0\ \text{for all }\eta\in\Lambda\}=\{Q(0)>0\}\setminus\bigcup_W\mathcal{P}_B(W).
+\]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For part 1, $g$ has positive leading coefficient and $g(0)<0$, so it has a root $z>0$. On $\mu\le0$, $g$ is therefore positive at most on one interval $(x,y)$ between its other two roots, and negative elsewhere. The elements of $\Lambda$ in that interval are consecutive, so they form a window $W$ or no modes at all. Its neighbours and the mode $0$ satisfy \eqref{eq:A-g}, so the point lies in $\mathcal{P}_A(W)$. Each polygon requires positive $g$ on exactly its own window, so the point lies in no other. Part 2 is the same argument applied to $-Q$, using \eqref{eq:B-Q}.
+\end{proof}
+
+\begin{corollary}[Stability of the zero mode]\label{cor:zero}
+The mode $\mu=0$ is stable if and only if $f_{CC}+f_{RR}+f_{\rho\rho}<0$ and
+\begin{align*}
+C_3&<f_{RR}C_2-f_{CC}f_{RR}f_{\rho\rho} && (g(0)<0),\\
+C_3&>-(f_{CC}+f_{\rho\rho})C_2+(f_{CC}+f_{RR})(f_{CC}+f_{\rho\rho})(f_{RR}+f_{\rho\rho}) && (Q(0)>0).
+\end{align*}
+\end{corollary}
+
+\begin{proof}
+This is the Routh--Hurwitz criterion at $\mu=0$. The trace condition is equivalent to $\mu^*>0$.
+\end{proof}
+
+\begin{corollary}[Classification when the zero mode is stable]\label{cor:classify}
+Suppose the conditions of Corollary~\ref{cor:zero} hold. Then $\operatorname{tr}L(\mu)<0$ at every mode. Let $W_A$ be the window with $(C_2,C_3)\in\mathcal{P}_A(W_A)$ and $W_B$ the window with $(C_2,C_3)\in\mathcal{P}_B(W_B)$, each taken to be empty if the point lies in no such polygon. Then a mode $\eta\in\Lambda$ has
+\[
+\begin{cases}
+1 \text{ eigenvalue with positive real part} & \text{if }\eta\in W_A,\\
+2 \text{ eigenvalues with positive real part} & \text{if }\eta\in W_B\setminus W_A,\\
+\text{none} & \text{otherwise}.
+\end{cases}
+\]
+In particular, the homogeneous equilibrium is stable if and only if $(C_2,C_3)$ lies outside every polygon of both theorems.
+\end{corollary}
+
+\begin{proof}
+Since $\operatorname{tr}L(0)<0$, we have $\mu^*>0$, so every mode satisfies $\mu<\mu^*$. By Theorem~\ref{thm:complement}, $W_A$ is the set of modes with $g>0$ and $W_B$ is the set of modes with $Q<0$. The case $\mu<\mu^*$ of Theorem~\ref{thm:count} then gives the counts.
+\end{proof}
+
+\begin{remark}
+These results do not describe windows containing the zero mode. For such a window, the conditions $g(m)<0$, $g(\sigma_i)>0$ and $g(0)>0$ have no right neighbour $M$. Because $g_R(m)<g_R(\sigma_i)<g_R(0)$, the set they define is unbounded as $C_2\to-\infty$ rather than a polygon of the table. Theorem~\ref{thm:count} still gives the eigenvalue count at each mode in that case.
+\end{remark}
+
+\section{Without autocatalysis}
+
+\begin{proposition}\label{prop:noauto}
+Suppose $f_{ii}<0$ for $i\in\{C,R,\rho\}$, $g(0)<0$ and $Q(0)>0$. Then $Q(\mu)>0$ for all $\mu\le0$.
+\end{proposition}
+
+\begin{proof}
+Let $q=-\mu\ge0$, so that each $g_i(\mu)=f_{ii}-qd_i$ is negative and $e_2$ increases with $q$. At $\mu=0$ we have $a_1>0$ and $a_3>0$, and $Q(0)>0$ gives $a_2>0$, that is, $C_2<e_2(0)\le e_2(\mu)$. Using $(g_i+g_k)(g_j+g_k)=e_2+g_k^2$ for $\{i,j,k\}=\{C,R,\rho\}$, equation \eqref{eq:Q} gives
+\[
+\frac{dQ}{dq}=p_{C\rho}\,(e_2-C_2)+p_{C\rho}\,g_R^2+p_{CR}\,(e_2+g_\rho^2)+p_{R\rho}\,(e_2+g_C^2)>0.
+\]
+Hence $Q(\mu)\ge Q(0)>0$.
+\end{proof}
+
+When all $f_{ii}<0$, this has two consequences:
+\begin{enumerate}
+\item In Theorem~\ref{thm:A}, condition \eqref{eq:A-Q} reduces to the single half-plane $Q(0)>0$. Also, $\operatorname{tr}L(0)<0$ holds automatically, and $S_\phi>0$ always falls in the last row of the table.
+\item The set in Theorem~\ref{thm:B} is empty. A Hopf bifurcation at which a stable homogeneous equilibrium loses stability can therefore occur only at the mode $\mu=0$, on the line $Q(0)=0$.
+\end{enumerate}
+
+\end{document}

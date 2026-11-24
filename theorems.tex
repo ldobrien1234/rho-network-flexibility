@@ -1,0 +1,369 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{array}
+
+\newtheorem{theorem}{Theorem}
+\renewcommand{\thetheorem}{\Alph{theorem}}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\title{Unstable-mode theorems for the Cdc42--Rac--Rho network}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+
+Let $J$ be the Jacobian of the reaction terms at the homogeneous equilibrium,
+\[
+J=\begin{pmatrix} f_{CC} & 0 & f_{C\rho}\\ f_{RC} & f_{RR} & 0\\ f_{\rho C} & f_{\rho R} & f_{\rho\rho}\end{pmatrix},
+\qquad
+C_2=f_{C\rho}f_{\rho C},\qquad C_3=f_{RC}f_{\rho R}f_{C\rho},
+\]
+let $D=\operatorname{diag}(d_C,d_R,d_\rho)$ with $d_i>0$, and let $f_{ii}\in\mathbb{R}$. Let $\Lambda\subset(-\infty,0]$ be the spectrum of the Laplacian, assumed discrete and unbounded below, with $0\in\Lambda$. A mode $\mu\in\Lambda$ has linearization $L(\mu)=J+\mu D$. Write
+\[
+g_i(\mu)=f_{ii}+\mu d_i,
+\qquad
+\det\bigl(\lambda I-L(\mu)\bigr)=\lambda^3+a_1(\mu)\lambda^2+a_2(\mu)\lambda+a_3(\mu).
+\]
+Then $a_1=-\operatorname{tr}L(\mu)$, $a_2=e_2(\mu)-C_2$ with $e_2=g_Cg_R+g_Cg_\rho+g_Rg_\rho$, and $a_3=-\det L(\mu)$. Define
+\begin{align}
+g(\mu)&=\det L(\mu)=g_Cg_Rg_\rho-C_2\,g_R+C_3, \label{eq:g}\\
+Q(\mu)&=a_1a_2-a_3=-(g_C+g_R)(g_C+g_\rho)(g_R+g_\rho)+C_2\,(g_C+g_\rho)+C_3. \label{eq:Q}
+\end{align}
+For fixed $f_{ii}$ and $d_i$, each of $g(\mu)$ and $Q(\mu)$ is affine in $(C_2,C_3)$. Each sign condition below is therefore a half-plane in the $(C_2,C_3)$ plane.
+
+\begin{assumption}\label{ass:zero}
+The zero mode is stable at the homogeneous equilibrium. By the Routh--Hurwitz criterion, this means $\operatorname{tr}L(0)=f_{CC}+f_{RR}+f_{\rho\rho}<0$ and
+\begin{align}
+C_3&<f_{RR}C_2-f_{CC}f_{RR}f_{\rho\rho} && (g(0)<0), \label{eq:zero-g}\\
+C_3&>-(f_{CC}+f_{\rho\rho})C_2+(f_{CC}+f_{RR})(f_{CC}+f_{\rho\rho})(f_{RR}+f_{\rho\rho}) && (Q(0)>0). \label{eq:zero-Q}
+\end{align}
+\end{assumption}
+
+Assumption~\ref{ass:zero} is taken throughout. It restricts $(C_2,C_3)$ to the wedge between the lines \eqref{eq:zero-g} and \eqref{eq:zero-Q}. It requires only the sum of the $f_{ii}$ to be negative, so individual $f_{ii}$ may be positive. Since $d_i>0$, it gives $\operatorname{tr}L(\mu)<0$ at every mode $\mu\in\Lambda$. Windows containing the zero mode lie outside the assumption and are not treated.
+
+Below, $m<\sigma_1\le\dots\le\sigma_n<M$ are consecutive elements of $\Lambda$ with $\sigma_i\neq0$, so $M\le0$. The modes $W=\{\sigma_1,\dots,\sigma_n\}$ are called a \emph{window}.
+
+\begin{lemma}\label{lem:count}
+Let $\mu\in\Lambda$ and write $\operatorname{tr}=\operatorname{tr}L(\mu)<0$, $g=g(\mu)$, $Q=Q(\mu)$.
+\begin{enumerate}
+\item Suppose $g\neq0$ and $Q\neq0$. If $g>0$, then $L(\mu)$ has exactly one eigenvalue with positive real part. If $g<0$ and $Q>0$, it has none. If $g<0$ and $Q<0$, it has exactly two.
+\item If $Q=0$, the eigenvalues of $L(\mu)$ are $\operatorname{tr}$ and the roots of $\lambda^2+g/\operatorname{tr}=0$. If $g<0$, the mode has a pure imaginary pair $\pm i\omega$ with $\omega^2=g/\operatorname{tr}$, and the real part of this pair changes with $C_3$ at the nonzero rate $-\bigl(2(\operatorname{tr}^2+\omega^2)\bigr)^{-1}$. If $g>0$, the pair is real, $\pm\sqrt{-g/\operatorname{tr}}$, and no eigenvalue crosses the imaginary axis.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+For part 1, the product of the eigenvalues is $g$ and their sum is negative. If $g>0$, the number with positive real part is odd, and it cannot be three, so it is one. If $g<0$, the number is even. Since $a_1>0$ and $a_3>0$, the Routh--Hurwitz criterion says the number is zero exactly when $a_1a_2>a_3$, that is, when $Q>0$.
+
+For part 2, $Q=0$ means $a_3=a_1a_2$, so the characteristic polynomial is $(\lambda+a_1)(\lambda^2+a_2)$, with $a_1=-\operatorname{tr}$ and $a_2=a_3/a_1=g/\operatorname{tr}$. Since $C_3$ enters $a_3$ with coefficient $-1$, differentiating the characteristic polynomial at $\lambda=i\omega$ gives
+\[
+\frac{d\lambda}{dC_3}=\frac{-1}{2a_2-2a_1i\omega},
+\qquad
+\frac{d\operatorname{Re}\lambda}{dC_3}=\frac{-1}{2(a_1^2+a_2)}.
+\qedhere
+\]
+\end{proof}
+
+So the line $Q(\sigma)=0$ is a Hopf locus for the mode $\sigma$ exactly where $g(\sigma)<0$, and crossing it changes the count at that mode from $0$ to $2$. Whether the resulting cycle is stable depends on higher derivatives of the reaction terms, which $(C_2,C_3)$ does not determine.
+
+\section{Theorem A: one eigenvalue with positive real part}
+
+\begin{theorem}\label{thm:A}
+The window $W$ contains the only unstable modes, each with exactly one eigenvalue with positive real part, if and only if
+\begin{align}
+&g(\sigma_1)>0,\quad g(\sigma_n)>0,\quad g(m)<0,\quad g(M)<0, \label{eq:A-g}\\
+&Q(\eta)>0\ \text{ for all }\eta\in\Lambda\setminus W. \label{eq:A-Q}
+\end{align}
+\end{theorem}
+
+\begin{proof}
+Since $g$ is a cubic in $\mu$ with leading coefficient $d_Cd_Rd_\rho>0$ and $g(0)<0$, conditions \eqref{eq:A-g} hold exactly when its roots satisfy $x\in(m,\sigma_1)$, $y\in(\sigma_n,M)$ and $z>0$. Hence $g>0$ throughout $W$ and $g<0$ on the rest of $\Lambda$, and sufficiency follows from Lemma~\ref{lem:count}. Necessity follows from the same lemma applied at every mode.
+\end{proof}
+
+\paragraph{Region in $(C_2,C_3)$.} Let
+\[
+\phi_i=\frac{f_{ii}}{d_i},\quad S_\phi=-(\phi_C+\phi_R+\phi_\rho),\quad
+\xi_2=\phi_C\phi_R+\phi_C\phi_\rho+\phi_R\phi_\rho,\quad \xi_3=\phi_C\phi_R\phi_\rho.
+\]
+For real $x,y$, set $z=S_\phi-x-y$ and let $V_{xy}$ be the point at which $g$ has roots $x,y,z$:
+\[
+V_{xy}:\quad
+C_2=d_Cd_\rho\bigl(\xi_2-xy-(x+y)z\bigr),\qquad
+C_3=f_{RR}\,C_2-d_Cd_Rd_\rho\,(xyz+\xi_3).
+\]
+The set defined by \eqref{eq:A-g} and $g(0)<0$ is the interior $\mathcal{P}_A(W)$ of the convex polygon with the vertices below.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|c|c|}
+\hline
+$S_\phi$ & Set geometry & Vertices \\
+\hline
+$S_\phi\le m+\sigma_n$ & Empty & n/a \\
+\hline
+$m+\sigma_n<S_\phi<m+M$ & Triangle & $V_{m\sigma_n},V_{m0},V_{\sigma_n0}$ \\
+\hline
+$m+M<S_\phi<\sigma_1+\sigma_n$ & Quadrilateral & $V_{mM},V_{m\sigma_n},V_{M0},V_{\sigma_n0}$ \\
+\hline
+$\sigma_1+\sigma_n<S_\phi<\sigma_1+M$ & Pentagon & $V_{mM},V_{m\sigma_n},V_{\sigma_1\sigma_n},V_{\sigma_10},V_{M0}$ \\
+\hline
+$\sigma_1+M<S_\phi$ & Quadrilateral & $V_{\sigma_1M},V_{\sigma_1\sigma_n},V_{mM},V_{m\sigma_n}$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{remark}
+If $\sigma_1=\sigma_n$, the vertex $V_{\sigma_1\sigma_n}$ lies on an edge. The pentagon then has the shape of a quadrilateral, and the last row has the shape of a triangle. The polygon varies continuously with $S_\phi$ across every row boundary.
+\end{remark}
+
+\section{Theorem B: two eigenvalues with positive real part}
+
+\begin{theorem}\label{thm:B}
+The window $W$ contains the only unstable modes, each with exactly two eigenvalues with positive real part, if and only if
+\begin{align}
+&Q(\sigma_1)<0,\quad Q(\sigma_n)<0,\quad Q(m)>0,\quad Q(M)>0, \label{eq:B-Q}\\
+&g(\eta)<0\ \text{ for all }\eta\in\Lambda. \label{eq:B-g}
+\end{align}
+\end{theorem}
+
+\begin{proof}
+Since $Q$ is a cubic in $\mu$ with leading coefficient $-(d_C+d_R)(d_C+d_\rho)(d_R+d_\rho)<0$ and $Q(0)>0$, conditions \eqref{eq:B-Q} hold exactly when its roots satisfy $x\in(m,\sigma_1)$, $y\in(\sigma_n,M)$ and $z>0$. Hence $Q<0$ throughout $W$ and $Q>0$ on the rest of $\Lambda$, and sufficiency follows from Lemma~\ref{lem:count}. Necessity follows from the same lemma applied at every mode.
+\end{proof}
+
+\begin{remark}
+The case $n=1$ is the single-mode statement: $\sigma\in\Lambda\setminus\{0\}$ is the unique unstable mode and has exactly two eigenvalues with positive real part if and only if $Q(\sigma)<0$, $Q(m)>0$, $Q(M)>0$, and $g(\eta)<0$ for all $\eta\in\Lambda$.
+\end{remark}
+
+\paragraph{Region in $(C_2,C_3)$.} Let $p_{ij}=d_i+d_j$, $P=p_{CR}\,p_{C\rho}\,p_{R\rho}$, and
+\[
+\theta_{ij}=\frac{f_{ii}+f_{jj}}{d_i+d_j},\quad
+S_\theta=-(\theta_{CR}+\theta_{C\rho}+\theta_{R\rho}),\quad
+\zeta_2=\theta_{CR}\theta_{C\rho}+\theta_{CR}\theta_{R\rho}+\theta_{C\rho}\theta_{R\rho},\quad
+\zeta_3=\theta_{CR}\theta_{C\rho}\theta_{R\rho}.
+\]
+For real $x,y$, set $z=S_\theta-x-y$ and let $\overline{V}_{xy}$ be the point at which $Q$ has roots $x,y,z$:
+\[
+\overline{V}_{xy}:\quad
+C_2=p_{CR}\,p_{R\rho}\bigl(\zeta_2-xy-(x+y)z\bigr),\qquad
+C_3=P\,(xyz+\zeta_3)-(f_{CC}+f_{\rho\rho})\,C_2.
+\]
+The set defined by \eqref{eq:B-Q} and $Q(0)>0$ is the interior $\mathcal{P}_B(W)$ of the convex polygon given by the table for Theorem~\ref{thm:A}, with $S_\theta$ in place of $S_\phi$ and $\overline{V}$ in place of $V$.
+
+\section{Reading the polygons together}
+
+In this section, assume also that $g(\eta)\neq0$ and $Q(\eta)\neq0$ for all $\eta\in\Lambda$, which excludes points on the boundary lines. A polygon is empty when its row of the table is empty.
+
+\begin{theorem}\label{thm:complement}
+\begin{enumerate}
+\item The set $\{\eta\in\Lambda:g(\eta)>0\}$ is either empty or a window $W$. In the second case, $(C_2,C_3)$ lies in $\mathcal{P}_A(W)$ and in no other polygon $\mathcal{P}_A$. Hence
+\[
+\{g(\eta)<0\ \text{for all }\eta\in\Lambda\}=\{g(0)<0\}\setminus\bigcup_W\mathcal{P}_A(W).
+\]
+\item The set $\{\eta\in\Lambda:Q(\eta)<0\}$ is either empty or a window $W$. In the second case, $(C_2,C_3)$ lies in $\mathcal{P}_B(W)$ and in no other polygon $\mathcal{P}_B$. Hence
+\[
+\{Q(\eta)>0\ \text{for all }\eta\in\Lambda\}=\{Q(0)>0\}\setminus\bigcup_W\mathcal{P}_B(W).
+\]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For part 1, $g$ has positive leading coefficient and $g(0)<0$, so it has a root $z>0$. On $\mu\le0$, $g$ is therefore positive at most on one interval $(x,y)$ between its other two roots, and negative elsewhere. The elements of $\Lambda$ in that interval are consecutive, so they form a window $W$ or no modes at all. Its neighbours and the mode $0$ satisfy the conditions defining $\mathcal{P}_A(W)$, so the point lies in that polygon. Each polygon requires positive $g$ on exactly its own window, so the point lies in no other. Part 2 is the same argument applied to $-Q$.
+\end{proof}
+
+The half-planes in \eqref{eq:B-g} are therefore already described by the polygons of Theorem~\ref{thm:A} and the line \eqref{eq:zero-g}, and those in \eqref{eq:A-Q} by the polygons of Theorem~\ref{thm:B} and the line \eqref{eq:zero-Q}. On any bounded range of $C_2$, only finitely many of these half-planes are active: for $\eta$ large enough that $g_R(\eta)<0$, the bound in $g(\eta)<0$ is $C_3<|g_R|(g_Cg_\rho-C_2)$.
+
+\begin{corollary}[Classification by polygons]\label{cor:classify}
+Let $W_A$ be the window with $(C_2,C_3)\in\mathcal{P}_A(W_A)$ and $W_B$ the window with $(C_2,C_3)\in\mathcal{P}_B(W_B)$, each taken to be empty if the point lies in no such polygon. Then a mode $\eta\in\Lambda$ has
+\[
+\begin{cases}
+1 \text{ eigenvalue with positive real part} & \text{if }\eta\in W_A,\\
+2 \text{ eigenvalues with positive real part} & \text{if }\eta\in W_B\setminus W_A,\\
+\text{none} & \text{otherwise}.
+\end{cases}
+\]
+Consequently:
+\begin{enumerate}
+\item the conclusion of Theorem~\ref{thm:A} holds on $W$ if and only if $(C_2,C_3)\in\mathcal{P}_A(W)$ and $W_B\subseteq W$;
+\item the conclusion of Theorem~\ref{thm:B} holds on $W$ if and only if $(C_2,C_3)\in\mathcal{P}_B(W)$ and the point lies outside every polygon $\mathcal{P}_A$;
+\item the homogeneous equilibrium is stable if and only if $(C_2,C_3)$ lies outside every polygon of both theorems.
+\end{enumerate}
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:complement}, $W_A$ is the set of modes with $g>0$ and $W_B$ is the set of modes with $Q<0$. Lemma~\ref{lem:count} then gives the counts, and the three consequences follow by reading off when the unstable modes and their counts are as stated.
+\end{proof}
+
+\begin{remark}
+On the line $Q(0)=0$ with $g(0)<0$, Lemma~\ref{lem:count} applies with $\mu=0$ and gives a pure imaginary pair, so a uniform Hopf bifurcation occurs at this edge of Assumption~\ref{ass:zero}. What happens beyond it is outside the scope of these results.
+\end{remark}
+
+\section{Which half-planes are needed}
+
+\begin{remark}[The limit of the lines]\label{rem:limit}
+Write $q=-\eta\ge0$. For $q$ large enough that $g_R(\eta)<0$, the line $g(\eta)=0$ is $C_3=g_R(\eta)\bigl(C_2-g_C(\eta)g_\rho(\eta)\bigr)$. As $q\to\infty$, its slope tends to $-\infty$ and it crosses $C_3=0$ at $C_2=g_Cg_\rho\to+\infty$. The lines therefore have no limit, and each half-plane $g(\eta)<0$ eventually contains any bounded set. Two consecutive lines $g(\eta)=0$ and $g(\eta')=0$ meet at $V_{\eta\eta'}$. If $\eta$ is allowed to vary continuously, the intersection of the half-planes is bounded above for large $C_2$ by the envelope $V_{xx}$, $x<\min(0,S_\phi/2)$, along which $g$ has a double root and
+\[
+C_3\sim-2\,d_Cd_Rd_\rho\Bigl(\frac{C_2}{3d_Cd_\rho}\Bigr)^{3/2},\qquad C_2\to+\infty.
+\]
+This falls faster than any line, so without Assumption~\ref{ass:zero} no single half-plane captures all of the conditions.
+\end{remark}
+
+Inside the wedge, however, there is an exact test. Write $e_2=e_2(0)=f_{CC}f_{RR}+f_{CC}f_{\rho\rho}+f_{RR}f_{\rho\rho}$, and for $q\ge0$ define the quadratics
+\begin{align*}
+R(q)&=\delta q^2+\delta S_\phi\,q+\bigl(\delta\xi_2-d_Re_2\bigr), \qquad \delta=d_Cd_Rd_\rho,\\
+\overline{R}(q)&=Pq^2+PS_\theta\,q+\bar c,\qquad
+\bar c=p_{CR}\bigl(e_2+f_{\rho\rho}^2\bigr)+p_{C\rho}f_{RR}^2+p_{R\rho}\bigl(e_2+f_{CC}^2\bigr).
+\end{align*}
+
+\begin{lemma}\label{lem:identities}
+For all $q\ge0$ and all $(C_2,C_3)$,
+\begin{align}
+g(-q)&=g(0)-qR(q)-q\,d_R\,(e_2-C_2), \label{eq:id-g}\\
+Q(-q)&=Q(0)+q\overline{R}(q)+q\,p_{C\rho}\,(e_2-C_2). \label{eq:id-Q}
+\end{align}
+Moreover, $Q(0)-g(0)=-\operatorname{tr}L(0)\,(e_2-C_2)$. So under Assumption~\ref{ass:zero}, the wedge lies in $C_2<e_2$, has its tip at $C_2=e_2$, and has vertical width $|\operatorname{tr}L(0)|\,(e_2-C_2)$.
+\end{lemma}
+
+\begin{proof}
+Equations \eqref{eq:id-g} and \eqref{eq:id-Q} follow by expanding \eqref{eq:g} and \eqref{eq:Q} in powers of $q$, using $(g_i+g_k)(g_j+g_k)=e_2+g_k^2$ at $q=0$ for $\{i,j,k\}=\{C,R,\rho\}$. Since $g=-a_3$ and $Q=a_1a_2-a_3$, we have $Q(0)-g(0)=a_1a_2=-\operatorname{tr}L(0)(e_2-C_2)$. The two lines $g(0)=0$ and $Q(0)=0$ are the sets where $C_3$ equals $C_3-g(0)$ and $C_3-Q(0)$, so their vertical separation is this difference.
+\end{proof}
+
+\begin{theorem}\label{thm:capture}
+Let $\eta=-q\in\Lambda\setminus\{0\}$.
+\begin{enumerate}
+\item If $R(q)\ge0$, then $g(\eta)<0$ throughout the wedge. If $R(q)<0$, then $g(\eta)>0$ at points of the wedge near its tip.
+\item If $\overline{R}(q)\ge0$, then $Q(\eta)>0$ throughout the wedge. If $\overline{R}(q)<0$, then $Q(\eta)<0$ at points of the wedge near its tip.
+\end{enumerate}
+Hence the line $g(0)=0$ captures every condition $g(\eta)<0$ on the wedge if and only if $R(q)\ge0$ at every mode, and the line $Q(0)=0$ captures every condition $Q(\eta)>0$ on the wedge if and only if $\overline{R}(q)\ge0$ at every mode. Otherwise, the only further conditions needed are at the finitely many modes with $R(q)<0$ or $\overline{R}(q)<0$.
+\end{theorem}
+
+\begin{proof}
+On the wedge, $g(0)<0$, $Q(0)>0$ and $e_2-C_2>0$, so the first statement of each part follows from \eqref{eq:id-g} and \eqref{eq:id-Q}. At the tip, $g(0)=Q(0)=0$ and $C_2=e_2$, so $g(-q)=-qR(q)$ and $Q(-q)=q\overline{R}(q)$. The second statement of each part then follows by continuity, since the wedge is open with the tip on its boundary. Since $\delta,P>0$, each quadratic is negative at most on a bounded interval of $q$.
+\end{proof}
+
+\begin{corollary}[A finite picture of the wedge]\label{cor:finite}
+Let $Z_A$ and $Z_B$ be the sets of modes $\eta=-q\neq0$ with $R(q)<0$ and $\overline{R}(q)<0$, respectively. These sets are finite, and each is empty or consists of consecutive modes. On the wedge, $W_A\subseteq Z_A$ and $W_B\subseteq Z_B$ in Corollary~\ref{cor:classify}. So the wedge is completely described by the finitely many polygons $\mathcal{P}_A(W)$ with $W\subseteq Z_A$ and $\mathcal{P}_B(W)$ with $W\subseteq Z_B$.
+\end{corollary}
+
+\begin{proof}
+A quadratic with positive leading coefficient is negative on at most one bounded interval, which gives the first claims. The inclusions are Theorem~\ref{thm:capture}.
+\end{proof}
+
+\section{The sign of $C_2$}
+
+\begin{theorem}\label{thm:C2}
+If $e_2\ge0$, then $Q(\eta)>0$ for all $\eta\in\Lambda$ throughout the wedge. Consequently:
+\begin{enumerate}
+\item If $C_2\ge0$, then $Q(\eta)>0$ for all $\eta\in\Lambda$.
+\item The set in Theorem~\ref{thm:B} lies in $C_2<e_2<0$, and it is empty if $e_2\ge0$.
+\item While Assumption~\ref{ass:zero} holds with $C_2\ge0$, no mode has two eigenvalues with positive real part and no mode $\sigma\neq0$ has a Hopf bifurcation.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+First, every pair sum $f_{ii}+f_{jj}$ is at most $0$. Suppose instead that $u=f_{CC}+f_{RR}>0$; the other pairs are identical. Since $\operatorname{tr}L(0)<0$, we have $f_{\rho\rho}<-u$, so
+\[
+e_2=f_{CC}f_{RR}+f_{\rho\rho}u\le\frac{u^2}{4}+f_{\rho\rho}u<\frac{u^2}{4}-u^2<0,
+\]
+which is a contradiction. Hence $\theta_{ij}\le0$ for every pair, so $S_\theta\ge0$. Also $\bar c>0$, since $e_2\ge0$ and $\operatorname{tr}L(0)<0$ means not all $f_{ii}$ vanish. Therefore $\overline{R}(q)>0$ for all $q\ge0$, and Theorem~\ref{thm:capture} gives $Q(\eta)>0$ throughout the wedge.
+
+For part 1, Lemma~\ref{lem:identities} gives $e_2>C_2\ge0$. Part 2 is the contrapositive, again using $C_2<e_2$. Part 3 follows from part 1 and Lemma~\ref{lem:count}.
+\end{proof}
+
+\begin{remark}
+Mutual inhibition between Cdc42 and Rho means $f_{C\rho},f_{\rho C}<0$, so $C_2>0$. For that network, the only Hopf bifurcation through which a stable homogeneous equilibrium can lose stability is the uniform one on $Q(0)=0$, whether or not some $f_{ii}$ are positive. Autocatalysis is necessary for a finite-wavenumber Hopf bifurcation, since all $f_{ii}<0$ gives $e_2>0$, but it is not sufficient: $f_{C\rho}$ and $f_{\rho C}$ must also have opposite signs.
+
+When all $f_{ii}<0$, also $S_\phi>0$, which always falls in the last row of the table.
+\end{remark}
+
+\section{The trace cutoff}
+
+This section drops Assumption~\ref{ass:zero} and describes a single mode at any value of the trace. Write $T=f_{CC}+f_{RR}+f_{\rho\rho}$ and
+\[
+\tau(\mu)=\operatorname{tr}L(\mu)=T+\mu\,(d_C+d_R+d_\rho),
+\qquad
+\mu^*=-\frac{T}{d_C+d_R+d_\rho},
+\]
+so that $\tau<0$ for $\mu<\mu^*$ and $\tau>0$ for $\mu>\mu^*$. Since $\tau$ does not involve $C_2$ or $C_3$, the cutoff is a fixed position on the mode axis, not a line in the $(C_2,C_3)$ plane.
+
+Assumption~\ref{ass:zero} gives $T<0$, so $\mu^*>0$ and no mode reaches the cutoff. Conversely, since $\tau$ increases with $\mu$ and every mode has $\mu\le0$, a positive trace at any mode forces $T>0$. Then $\mu^*<0$, and every mode in $\Lambda\cap(\mu^*,0]$, which includes the zero mode, has an eigenvalue with positive real part for every $(C_2,C_3)$. So a positive trace never occurs at a mode of a stable homogeneous equilibrium.
+
+The trace enters through the identity, which follows from $Q=a_1a_2-a_3$ and $g=-a_3$,
+\begin{equation}
+Q(\mu)-g(\mu)=-\tau(\mu)\,a_2(\mu),\qquad a_2(\mu)=e_2(\mu)-C_2. \label{eq:Q-g-trace}
+\end{equation}
+At fixed $\mu$ with $\tau\neq0$, the lines $g(\mu)=0$ and $Q(\mu)=0$ therefore meet at the single point with $C_2=e_2(\mu)$, where the characteristic polynomial is $\lambda^2(\lambda-\tau)$. Their slopes are $g_R$ and $-(g_C+g_\rho)$, which differ by $\tau$, and their vertical separation is $|\tau||a_2|$. As $\mu\to\mu^*$ the wedges between them close, and at $\mu=\mu^*$ the two lines coincide.
+
+\begin{proposition}\label{prop:trace-count}
+Let $g(\mu)\neq0$ and $Q(\mu)\neq0$. The number of eigenvalues of $L(\mu)$ with positive real part is
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & $\tau<0$ & $\tau=0$ & $\tau>0$ \\
+\hline
+$g>0,\ Q>0$ & $1$ & $1$ & $1$ \\
+\hline
+$g<0,\ Q<0$ & $2$ & $2$ & $2$ \\
+\hline
+$g<0,\ Q>0$ & $0$ & cannot occur & $2$ \\
+\hline
+$g>0,\ Q<0$ & $1$ & cannot occur & $3$ \\
+\hline
+\end{tabular}
+\end{center}
+\end{proposition}
+
+\begin{proof}
+The column $\tau<0$ is Lemma~\ref{lem:count}. For $\tau>0$, apply that column to $-L(\mu)$, whose trace, determinant and $Q$ are $-\tau$, $-g$ and $-Q$. No eigenvalue lies on the imaginary axis, since that would require $g=0$ or $Q=0$, so a count of $k$ for $-L(\mu)$ is a count of $3-k$ for $L(\mu)$. For $\tau=0$, \eqref{eq:Q-g-trace} gives $Q=g$. The eigenvalues then sum to zero and multiply to $g\neq0$, and none lies on the imaginary axis. So the count is not $0$ or $3$, and its parity is fixed by the sign of $g$.
+\end{proof}
+
+Passing through the cutoff therefore leaves the count unchanged in the first two rows and raises it by two in the last two. The last two rows are the wedges of \eqref{eq:Q-g-trace}, which vanish at $\tau=0$, so moving between their columns at fixed signs of $g$ and $Q$ requires passing through $g=Q=0$.
+
+\begin{proposition}\label{prop:trace-crossing}
+Fix $\mu$ and $C_2$, and let $C_3$ increase. Both $g$ and $Q$ increase at unit rate, so each vanishes exactly once.
+\begin{enumerate}
+\item On $g=0$, the eigenvalues are $0$ and the roots of $\lambda^2-\tau\lambda+a_2=0$. If $a_2\neq0$, the zero eigenvalue moves at rate $d\lambda/dC_3=1/a_2$.
+\item On $Q=0$ with $\tau\neq0$, the eigenvalues are $\tau$ and $\pm\sqrt{-a_2}$. If $a_2>0$, this is a pure imaginary pair $\pm i\omega$ with $\omega^2=a_2$, and its real part moves at rate $-\bigl(2(\tau^2+a_2)\bigr)^{-1}$ for either sign of $\tau$. If $a_2<0$, no eigenvalue crosses the imaginary axis.
+\item The count changes as follows, where $g$ and $Q$ label the line at which each change occurs.
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & $\tau<0$ & $\tau=0$ & $\tau>0$ \\
+\hline
+$C_2<e_2(\mu)$ & $2\xrightarrow{Q}0\xrightarrow{g}1$ & $2\xrightarrow{g=Q}1$ & $2\xrightarrow{g}3\xrightarrow{Q}1$ \\
+\hline
+$C_2\ge e_2(\mu)$ & $2\xrightarrow{g}1$ & $2\xrightarrow{g=Q}1$ & $2\xrightarrow{g}1$ \\
+\hline
+\end{tabular}
+\end{center}
+For $C_2<e_2(\mu)$ and $\tau\neq0$, the intermediate stage has length $|\tau|\,(e_2(\mu)-C_2)$ in $C_3$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Parts 1 and 2 come from factoring the characteristic polynomial, as in Lemma~\ref{lem:count}. On $g=0$ it is $\lambda(\lambda^2-\tau\lambda+a_2)$, and differentiating at $\lambda=0$ gives the rate. On $Q=0$ it is $(\lambda-\tau)(\lambda^2+a_2)$, and the rate is the computation in the proof of Lemma~\ref{lem:count} with $a_1=-\tau$, which does not use the sign of $\tau$. For part 3, \eqref{eq:Q-g-trace} gives the order in which $g$ and $Q$ vanish and the separation between them, and Proposition~\ref{prop:trace-count} gives the counts before, between and after.
+\end{proof}
+
+Both endpoints of each row are the same for all $\tau$: the count is $2$ for $C_3$ low enough and $1$ for $C_3$ high enough. The sign of the trace matters only for $C_2<e_2(\mu)$, where it reverses the order of the two crossings and so selects the intermediate state.
+\begin{itemize}
+\item \emph{Negative trace.} The Hopf crossing is $2\leftrightarrow0$ and the real crossing is $0\leftrightarrow1$, both of which border a stable mode.
+\item \emph{Positive trace.} The same two crossings occur, with the same rates, as $3\leftrightarrow1$ and $2\leftrightarrow3$. The third eigenvalue on the Hopf line is $\tau>0$, so the bifurcating pair lies on top of an unstable real direction, and the mode is never stable.
+\item \emph{Zero trace.} On the single line $g=Q=0$ with $C_2<e_2(\mu^*)$, the eigenvalues are $0,\pm i\omega$. All three cross at once: the real eigenvalue moves from negative to positive at rate $1/a_2$, and the pair from positive to negative at rate $-1/(2a_2)$. For $C_2>e_2(\mu^*)$ the eigenvalues are $0,\pm\sqrt{-a_2}$, and only the zero eigenvalue crosses.
+\end{itemize}
+By part 2, the Hopf part of $Q(\mu)=0$ is the ray $C_2<e_2(\mu)$ on both sides of the cutoff. This agrees with the condition $g(\mu)<0$ of Lemma~\ref{lem:count} when $\tau<0$, since $a_2=g/\tau$ on $Q=0$. For $\tau>0$ the ray lies in $g(\mu)>0$ instead. If $\mu^*\notin\Lambda$, no mode has $\tau=0$, the lines coincide for no mode, and the cutoff only separates the modes into the two outer columns of the tables.
+
+\begin{remark}
+Proposition~\ref{prop:trace-count} gives the count at each mode from $\tau$, $g$ and $Q$, but the polygon classification does not extend automatically past the cutoff. Theorems~\ref{thm:A} and~\ref{thm:B} and Corollary~\ref{cor:classify} rest on a stable zero mode, which is impossible for $T\ge0$. The wedge of Assumption~\ref{ass:zero} has width $|T|\,(e_2(0)-C_2)$ by Lemma~\ref{lem:identities}, so it closes onto a line as $T\to0^-$. For $T>0$, the set with $g>0$ may also contain the zero mode. The conditions $g(m)<0$, $g(\sigma_i)>0$ and $g(0)>0$ then have no right neighbour $M$, and since $g_R(m)<g_R(\sigma_i)<g_R(0)$, the set they define is unbounded as $C_2\to-\infty$, so it is not a polygon of the table.
+\end{remark}
+
+\end{document}
