@@ -19,6 +19,7 @@ include("cdc42_rac_rho.jl")
 
 using LazySets
 using Random
+using Plots
 
 # --------------------------- fixed parameters ------------------------
 # Diagonal of the Jacobian
@@ -158,29 +159,32 @@ function polygon_hopf(k_1, k_2)
 end
 
 # --------------------------- stable zero mode ------------------------
+# The zero mode is stable on {g(0) < 0} ∩ {Q(0) > 0}, the "wedge".  Both
+# conditions are half-planes in (C_2, C_3).  A LazySets HalfSpace(a, b) is
+# the set a . (C_2, C_3) <= b.
+
+# Half-plane g(0) < 0, bounded by the steady-state crossing g(0) = 0:
+#     g(0) = f_CC f_RR f_rhorho - f_RR C_2 + C_3 < 0
+#         <=>  -f_RR C_2 + C_3 < -f_CC f_RR f_rhorho
+const g0_negative = HalfSpace([-f_RR, 1.0], -f_CC * f_RR * f_rhorho)
+
+# Half-plane Q(0) > 0, bounded by the Hopf crossing Q(0) = 0:
+#     Q(0) = -(f_CC + f_RR)(f_CC + f_rhorho)(f_RR + f_rhorho) + (f_CC + f_rhorho) C_2 + C_3 > 0
+#         <=>  -(f_CC + f_rhorho) C_2 - C_3 < -(f_CC + f_RR)(f_CC + f_rhorho)(f_RR + f_rhorho)
+const Q0_positive = HalfSpace([-(f_CC + f_rhorho), -1.0],
+                              -(f_CC + f_RR) * (f_CC + f_rhorho) * (f_RR + f_rhorho))
+
 """
     intersect_zero_mode_stable(polygon)
 
-Intersection of `polygon` with the region where the zero mode is stable,
-{g(0) < 0} ∩ {Q(0) > 0}.  Both conditions are half-planes in (C_2, C_3):
-
-    g(0) = f_CC f_RR f_rhorho - f_RR C_2 + C_3 < 0
-        <=>  -f_RR C_2 + C_3 < -f_CC f_RR f_rhorho
-
-    Q(0) = -(f_CC + f_RR)(f_CC + f_rhorho)(f_RR + f_rhorho) + (f_CC + f_rhorho) C_2 + C_3 > 0
-        <=>  -(f_CC + f_rhorho) C_2 - C_3 < -(f_CC + f_RR)(f_CC + f_rhorho)(f_RR + f_rhorho)
-
-A LazySets HalfSpace(a, b) is the set a . (C_2, C_3) <= b.  The zero mode
-also needs tr L(0) = f_CC + f_RR + f_rhorho < 0, which does not depend on
-(C_2, C_3).  Returns `nothing` if `polygon` is `nothing` or the
-intersection is empty or has zero area.
+Intersection of `polygon` with the wedge where the zero mode is stable,
+`g0_negative` ∩ `Q0_positive`.  The zero mode also needs
+tr L(0) = f_CC + f_RR + f_rhorho < 0, which does not depend on (C_2, C_3).
+Returns `nothing` if `polygon` is `nothing` or the intersection is empty
+or has zero area.
 """
 function intersect_zero_mode_stable(polygon)
     polygon === nothing && return nothing
-
-    g0_negative = HalfSpace([-f_RR, 1.0], -f_CC * f_RR * f_rhorho)
-    Q0_positive = HalfSpace([-(f_CC + f_rhorho), -1.0],
-                            -(f_CC + f_RR) * (f_CC + f_rhorho) * (f_RR + f_rhorho))
 
     region = intersection(intersection(polygon, g0_negative), Q0_positive)
     isempty(region) && return nothing
@@ -190,7 +194,7 @@ end
 
 # --------------------------- no steady-state mode --------------------
 """
-    intersect_no_steady_state_mode(region; k_max = κ_max)
+    intersect_no_steady_state_mode(region; k_min = κ_min, k_max = κ_max)
 
 Intersection of `region` with {g(-k^2) < 0 for k = k_min..k_max}, the Hopf
 theorem's condition g(eta) < 0 checked up to the mode k_max.  For a region
@@ -210,7 +214,7 @@ higher modes is kept.
 Returns `nothing` if `region` is `nothing` or the intersection is empty or
 has zero area.
 """
-function intersect_no_steady_state_mode(region; k_max = κ_max)
+function intersect_no_steady_state_mode(region; k_min = κ_min, k_max = κ_max)
     region === nothing && return nothing
 
     for k in k_min:k_max
@@ -244,30 +248,44 @@ function all_bands(k_min = κ_min, k_max = κ_max)
     return bands
 end
 
-# --------------------------- sampling the band polygons --------------
+# --------------------------- band regions ----------------------------
+"""
+    band_regions(k_1, k_2)
+
+The regions of the band k_1..k_2 that we sample from and plot, as a named
+tuple `(steady_state, hopf)`; each is a LazySets set, or `nothing` if empty.
+
+    steady_state:  steady-state polygon, cut to a stable zero mode
+                   (`intersect_zero_mode_stable`)
+    hopf:          Hopf polygon, cut to a stable zero mode and to g < 0 at
+                   every mode (`intersect_no_steady_state_mode`), which
+                   removes the points that lie in a steady-state polygon,
+                   where the steady-state behaviour dominates
+"""
+function band_regions(k_1, k_2)
+    region_A = intersect_zero_mode_stable(polygon_steady_state(k_1, k_2))
+    region_B = intersect_no_steady_state_mode(intersect_zero_mode_stable(polygon_hopf(k_1, k_2)))
+    return (steady_state = region_A, hopf = region_B)
+end
+
+# --------------------------- sampling the band regions ---------------
 
 """
     sample_band(k_1, k_2, n_points; seed = 1)
 
-Uniform random points (C_2, C_3) in the band k_1..k_2's polygon for the
-steady-state theorem (A) and for the Hopf theorem (B), each cut to the
-region where the zero mode is stable (`intersect_zero_mode_stable`).  The
-Hopf region is also cut to g < 0 at every mode
-(`intersect_no_steady_state_mode`), which removes the points that lie in
-a steady-state polygon, where the steady-state behaviour dominates.
-Returns a named tuple `(steady_state, hopf)` of vectors of [C_2, C_3]; a
-vector is empty when its cut region is.
+Uniform random points (C_2, C_3) in the band k_1..k_2's steady-state and
+Hopf regions (`band_regions`).  Returns a named tuple `(steady_state, hopf)`
+of vectors of [C_2, C_3]; a vector is empty when its region is.
 
-Points are drawn uniformly from the polygon's bounding box and kept if
-they lie in the polygon (LazySets' RejectionSampler).  LazySets' default
+Points are drawn uniformly from the region's bounding box and kept if
+they lie in the region (LazySets' RejectionSampler).  LazySets' default
 sampler is not used: it can switch to a non-uniform method that ignores
 the seed.
 """
 function sample_band(k_1, k_2, n_points; seed = 1)
     rng = Xoshiro(seed)
 
-    region_A = intersect_zero_mode_stable(polygon_steady_state(k_1, k_2))
-    region_B = intersect_no_steady_state_mode(intersect_zero_mode_stable(polygon_hopf(k_1, k_2)))
+    region_A, region_B = band_regions(k_1, k_2)
 
     points_A = region_A === nothing ? Vector{Float64}[] :
         LazySets.sample(region_A, n_points; sampler = LazySets.RejectionSampler(region_A), rng = rng)
@@ -369,7 +387,7 @@ function simulate_bands(n_points; N = 257, seed = 1)
         for theorem in (:steady_state, :hopf)
             for (C_2, C_3) in points[theorem]
                 p       = lift(C_2, C_3)
-                u_star  = homogeneous_state(p) #u*≡1 by choice of p
+                u_star  = homogeneous_state(p) #u* ≡ 1 by choice of p
                 u_init  = noisy_initial_value(u_star, N; rng = rng)
                 u_final, reached = solve_to_steady_state(u_init, p)
 
@@ -380,3 +398,67 @@ function simulate_bands(n_points; N = 257, seed = 1)
     end
     return results
 end
+
+
+
+# --------------------------- plots -----------------------------------
+"""
+    label_region!(plt, region, k_1, k_2)
+
+Write the band "k_1..k_2" at the centre of `region` (the average of its
+vertices, which lies inside a convex polygon).
+"""
+function label_region!(plt, region, k_1, k_2)
+    vertices = vertices_list(region)
+    centre   = sum(vertices) / length(vertices)
+    annotate!(plt, centre[1], centre[2], text("$k_1..$k_2", 8))
+end
+
+"""
+    plot_regions()
+
+All bands' steady-state regions in one colour and Hopf regions in another,
+in the (C_2, C_3) plane (the regions from `band_regions`), each labelled
+with its band k_1..k_2, together with the edges of the wedge where the zero
+mode is stable: the steady-state crossing g(0) = 0 (solid) and the Hopf
+crossing Q(0) = 0 (dotted).
+"""
+function plot_regions()
+    plt = plot(xlabel = "C₂", ylabel = "C₃", title = "Band regions in cycle space",
+               legend = :outerright, size = (900, 500), left_margin = 5Plots.mm)
+
+    # label each colour once in the legend
+    steady_state_labelled = false
+    hopf_labelled         = false
+
+    for (k_1, k_2) in all_bands()
+        region_A, region_B = band_regions(k_1, k_2)
+        if region_A !== nothing
+            plot!(plt, region_A; color = :steelblue, alpha = 0.5,
+                  label = steady_state_labelled ? "" : "steady state")
+            label_region!(plt, region_A, k_1, k_2)
+            steady_state_labelled = true
+        end
+        if region_B !== nothing
+            plot!(plt, region_B; color = :darkorange, alpha = 0.5,
+                  label = hopf_labelled ? "" : "Hopf")
+            label_region!(plt, region_B, k_1, k_2)
+            hopf_labelled = true
+        end
+    end
+
+    # widen the view by 20% on each side, so the wedge edges show beyond the regions
+    (x_low, x_high), (y_low, y_high) = xlims(plt), ylims(plt)
+    xlims!(plt, x_low - 0.2 * (x_high - x_low), x_high + 0.2 * (x_high - x_low))
+    ylims!(plt, y_low - 0.2 * (y_high - y_low), y_high + 0.2 * (y_high - y_low))
+
+    # edges of the wedge where the zero mode is stable
+    plot!(plt, Line2D(g0_negative.a, g0_negative.b); color = :black, linealpha = 1,
+          linestyle = :solid, label = "g(0) = 0  (steady-state crossing)")
+    plot!(plt, Line2D(Q0_positive.a, Q0_positive.b); color = :black, linealpha = 1,
+          linestyle = :dot, label = "Q(0) = 0  (Hopf crossing)")
+    return plt
+end
+
+
+plot_regions()
