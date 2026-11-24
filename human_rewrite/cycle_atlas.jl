@@ -38,9 +38,6 @@ const theta_Crho = (f_CC + f_rhorho) / (d_C + d_rho)
 const theta_Rrho = (f_RR + f_rhorho) / (d_R + d_rho)
 const S_theta    = -(theta_CR + theta_Crho + theta_Rrho)
 
-# Bands k_1..k_2 are checked for 1 <= k_1 <= k_2 <= k_max
-const k_max = 4
-
 # Max and minimum wave numbers to consider
 const κ_min = 1
 const κ_max = 4
@@ -188,6 +185,62 @@ function intersect_zero_mode_stable(polygon)
     return region
 end
 
+# --------------------------- no steady-state mode --------------------
+"""
+    intersect_no_steady_state_mode(region; k_max = κ_max)
+
+Intersection of `region` with {g(-k^2) < 0 for k = k_min..k_max}, the Hopf
+theorem's condition g(eta) < 0 checked up to the mode k_max.  For a region
+that already has g(0) < 0, this removes the points that lie in a
+steady-state polygon of a band within 1..k_max, since the modes with
+g > 0 always form a band.
+
+At the mode mu = -k^2,
+
+    g(mu) = (f_CC + mu d_C)(f_RR + mu d_R)(f_rhorho + mu d_rho) - (f_RR + mu d_R) C_2 + C_3,
+
+so g(mu) < 0 is the half-plane  -(f_RR + mu d_R) C_2 + C_3 < -(f_CC + mu d_C)(f_RR + mu d_R)(f_rhorho + mu d_rho).
+
+Modes above k_max are not checked yet, so a point with g > 0 only at
+higher modes is kept.
+
+Returns `nothing` if `region` is `nothing` or the intersection is empty or
+has zero area.
+"""
+function intersect_no_steady_state_mode(region; k_max = κ_max)
+    region === nothing && return nothing
+
+    for k in k_min:k_max
+        mu = -k^2
+        g_negative = HalfSpace([-(f_RR + mu * d_R), 1.0],
+                               -(f_CC + mu * d_C) * (f_RR + mu * d_R) * (f_rhorho + mu * d_rho))
+        region = intersection(region, g_negative)
+        isempty(region) && return nothing
+    end
+
+    area(region) > 0 || return nothing
+    return region
+end
+
+
+
+# --------------------------- all bands -------------------------------
+"""
+    all_bands(k_min = κ_min, k_max = κ_max)
+
+All bands k_1..k_2 with k_min <= k_1 <= k_2 <= k_max, as a vector of
+pairs (k_1, k_2).
+"""
+function all_bands(k_min = κ_min, k_max = κ_max)
+    bands = Tuple{Int,Int}[]
+    for k_1 in k_min:k_max
+        for k_2 in k_1:k_max
+            push!(bands, (k_1, k_2))
+        end
+    end
+    return bands
+end
+
 # --------------------------- sampling the band polygons --------------
 
 """
@@ -195,7 +248,10 @@ end
 
 Uniform random points (C_2, C_3) in the band k_1..k_2's polygon for the
 steady-state theorem (A) and for the Hopf theorem (B), each cut to the
-region where the zero mode is stable (`intersect_zero_mode_stable`).
+region where the zero mode is stable (`intersect_zero_mode_stable`).  The
+Hopf region is also cut to g < 0 at every mode
+(`intersect_no_steady_state_mode`), which removes the points that lie in
+a steady-state polygon, where the steady-state behaviour dominates.
 Returns a named tuple `(steady_state, hopf)` of vectors of [C_2, C_3]; a
 vector is empty when its cut region is.
 
@@ -208,7 +264,7 @@ function sample_band(k_1, k_2, n_points; seed = 1)
     rng = Xoshiro(seed)
 
     region_A = intersect_zero_mode_stable(polygon_steady_state(k_1, k_2))
-    region_B = intersect_zero_mode_stable(polygon_hopf(k_1, k_2))
+    region_B = intersect_no_steady_state_mode(intersect_zero_mode_stable(polygon_hopf(k_1, k_2)))
 
     points_A = region_A === nothing ? Vector{Float64}[] :
         LazySets.sample(region_A, n_points; sampler = LazySets.RejectionSampler(region_A), rng = rng)
