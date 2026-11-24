@@ -7,9 +7,9 @@
 #  Kinetics.  Each GTPase is produced at a basal rate plus Hill-function
 #  regulation by the others, and decays linearly:
 #
-#    dC/dt   = b_C   + a_C   H-(rho; K_C)                             - g_C   C
-#    dR/dt   = b_R   + a_R   H+(C;   K_R)                             - g_R   R
-#    drho/dt = b_rho + a_rho1 H-(C;  K_rho1) + a_rho2 H+(R; K_rho2)   - g_rho rho
+#    dC/dt   = d_C * ΔC + b_C   + a_C   H-(rho; K_C) - g_C   C
+#    dR/dt   = d_R * ΔR + b_R   + a_R   H+(C;   K_R) - g_R   R
+#    drho/dt =d_rho * Δrho +  b_rho + a_rho1 H-(C;  K_rho1) + a_rho2 H+(R; K_rho2) - g_rho rho
 #
 #  with Hill functions of order n
 #
@@ -62,6 +62,18 @@ end
 function hill_inhibit(u, K)
     u = max(u, 0.0) #must take positive u values
     return K^n_hill / (K^n_hill + u^n_hill)
+end
+
+"Derivative of the activating Hill function, dH+/du = n K^n u^(n-1) / (K^n + u^n)^2."
+function dhill_activate(u, K)
+    u = max(u, 0.0)
+    return n_hill * K^n_hill * u^(n_hill - 1) / (K^n_hill + u^n_hill)^2
+end
+
+"Derivative of the inhibiting Hill function, dH-/du = -n K^n u^(n-1) / (K^n + u^n)^2."
+function dhill_inhibit(u, K)
+    u = max(u, 0.0)
+    return -n_hill * K^n_hill * u^(n_hill - 1) / (K^n_hill + u^n_hill)^2
 end
 
 # --------------------------- reaction term ---------------------------

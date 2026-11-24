@@ -42,6 +42,9 @@ const S_theta    = -(theta_CR + theta_Crho + theta_Rrho)
 const κ_min = 1
 const κ_max = 4
 
+# Off-diagonal Jacobian entry Cdc42 -> Rac, held fixed in the lift
+const f_RC = 1.0
+
 # --------------------------- vertex pairs ----------------------------
 """
     band_modes(k_1, k_2)
@@ -274,4 +277,106 @@ function sample_band(k_1, k_2, n_points; seed = 1)
     return (steady_state = points_A, hopf = points_B)
 end
 
+# --------------------------- lift to model rates ---------------------
+"""
+    lift(C_2, C_3)
 
+Rates `p` for `reaction` such that u* = (1, 1, 1) is a homogeneous steady
+state whose Jacobian has the cycle values (C_2, C_3).
+
+We set the off-diagonal entries of the Jacobian according to:
+
+    f_Crho = f_rhoC = -sqrt(C_2)      (mutual inhibition, so C_2 = f_Crho f_rhoC)
+    f_RC   = 1                        (fixed constant)
+    f_rhoR = C_3 / (f_RC f_Crho)      (so C_3 = f_RC f_rhoR f_Crho)
+
+We need to choose constants so that the above is true at u = 1.
+Looking at the model equation, one choice is the following.
+
+    a_C    = f_Crho / H-'(1; K_C)          a_R    = f_RC   / H+'(1; K_R)
+    a_rho1 = f_rhoC / H-'(1; K_rho1)       a_rho2 = f_rhoR / H+'(1; K_rho2)
+
+The diagonal is f_ii = -g_i, from the fixed decay rates.  The basal rates
+b_i do not change the Jacobian; they are chosen so that F(1, 1, 1) = 0:
+
+    b_C   = g_C   - a_C H-(1; K_C)
+    b_R   = g_R   - a_R H+(1; K_R)
+    b_rho = g_rho - a_rho1 H-(1; K_rho1) - a_rho2 H+(1; K_rho2)
+"""
+function lift(C_2, C_3)
+    # Jacobian entries
+    f_Crho = -sqrt(C_2)
+    f_rhoC = -sqrt(C_2)
+    f_rhoR = C_3 / (f_RC * f_Crho)
+
+    # Hill amplitudes from the Hill derivatives at u = 1
+    a_C    = f_Crho / dhill_inhibit(1.0, K_C)
+    a_R    = f_RC   / dhill_activate(1.0, K_R)
+    a_rho1 = f_rhoC / dhill_inhibit(1.0, K_rho1)
+    a_rho2 = f_rhoR / dhill_activate(1.0, K_rho2)
+
+    # Basal rates that make u* = (1, 1, 1) a steady state
+    b_C   = g_C   - a_C    * hill_inhibit(1.0, K_C)
+    b_R   = g_R   - a_R    * hill_activate(1.0, K_R)
+    b_rho = g_rho - a_rho1 * hill_inhibit(1.0, K_rho1) - a_rho2 * hill_activate(1.0, K_rho2)
+
+    #In the correct for of p necessary for functions in cdc42_rac_rho.jl 
+    return (a_C = a_C, a_R = a_R, a_rho1 = a_rho1, a_rho2 = a_rho2,
+            b_C = b_C, b_R = b_R, b_rho = b_rho)
+end
+
+
+# --------------------------- simulating the bands --------------------
+"""
+    noisy_initial_value(u_star, N; amplitude = 0.01, rng)
+
+Initial value for the PDE: the homogeneous steady state u* on N grid
+points, with independent relative noise of size `amplitude` at every
+point, u_i(x) = u*_i (1 + amplitude * xi) with xi standard normal.
+Returns an N x 3 matrix with columns C, R, rho.
+"""
+function noisy_initial_value(u_star, N; amplitude = 0.01, rng)
+    u_init = zeros(N, 3)
+    for species in 1:3
+        u_init[:, species] = u_star[species] .* (1 .+ amplitude .* randn(rng, N))
+    end
+    return u_init
+end
+
+"""
+    simulate_bands(n_points; N = 257, seed = 1)
+
+For every band, sample `n_points` points (C_2, C_3) from its steady-state
+and Hopf regions, lift each to model rates, and solve the PDE to steady
+state from a noisy initial value around the homogeneous steady state.
+
+Returns a vector with one named tuple per point:
+    band       (k_1, k_2)
+    theorem    :steady_state or :hopf
+    C_2, C_3   the sampled point
+    p          the lifted rates
+    u_star     the homogeneous steady state
+    u_final    the final N x 3 matrix (columns C, R, rho)
+    reached    whether the solver reached a steady state
+"""
+function simulate_bands(n_points; N = 257, seed = 1)
+    rng = Xoshiro(seed)
+    results = []
+
+    for (k_1, k_2) in all_bands()
+        points = sample_band(k_1, k_2, n_points; seed = seed)
+
+        for theorem in (:steady_state, :hopf)
+            for (C_2, C_3) in points[theorem]
+                p       = lift(C_2, C_3)
+                u_star  = homogeneous_state(p) #u*≡1 by choice of p
+                u_init  = noisy_initial_value(u_star, N; rng = rng)
+                u_final, reached = solve_to_steady_state(u_init, p)
+
+                push!(results, (band = (k_1, k_2), theorem = theorem, C_2 = C_2, C_3 = C_3,
+                                p = p, u_star = u_star, u_final = u_final, reached = reached))
+            end
+        end
+    end
+    return results
+end
