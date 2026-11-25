@@ -601,6 +601,3 @@ function plot_regions()
 end
 
 
-
-
-plot_regions()
