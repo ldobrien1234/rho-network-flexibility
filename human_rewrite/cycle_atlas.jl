@@ -24,10 +24,11 @@ using ForwardDiff
 using LinearAlgebra
 
 ## -------------------------- fixed parameters ------------------------
-# Diagonal of the Jacobian
-const f_CC     = -g_C
-const f_RR     = -g_R
-const f_rhorho = -g_rho
+# Diagonal of the Jacobian.  f_ii > 0 (needed for the Hopf bands) comes from
+# the bounded autocatalysis in cdc42_rac_rho.jl; `lift` sets it.
+const f_CC     = -4.0
+const f_RR     =  1.4
+const f_rhorho =  0.5
 
 # phi_i = f_ii / d_i and S_phi = -(phi_C + phi_R + phi_rho)
 const phi_C   = f_CC     / d_C
@@ -419,12 +420,22 @@ Looking at the model equation, one choice is the following.
     a_C    = f_Crho / H-'(1; K_C)          a_R    = f_RC   / H+'(1; K_R)
     a_rho1 = f_rhoC / H-'(1; K_rho1)       a_rho2 = f_rhoR / H+'(1; K_rho2)
 
-The diagonal is f_ii = -g_i, from the fixed decay rates.  The basal rates
-b_i do not change the Jacobian; they are chosen so that F(1, 1, 1) = 0:
+The diagonal is f_ii = a_ii Hs'(1; K_ii) - g_i: self-activation (bounded
+autocatalysis) minus decay.  The decay rate g_i comes from
+`smallest_decay_rate`, which keeps concentrations positive, and then
 
-    b_C   = g_C   - a_C H-(1; K_C)
-    b_R   = g_R   - a_R H+(1; K_R)
-    b_rho = g_rho - a_rho1 H-(1; K_rho1) - a_rho2 H+(1; K_rho2)
+    a_ii = (f_ii + g_i) / Hs'(1; K_ii).
+
+The basal rates b_i do not change the Jacobian; they are chosen so that
+F(1, 1, 1) = 0:
+
+    b_i = g_i - P_i - a_ii Hs(1; K_ii),
+
+where P_i is the production by regulation at u = 1,
+
+    P_C   = a_C H-(1; K_C)
+    P_R   = a_R H+(1; K_R)
+    P_rho = a_rho1 H-(1; K_rho1) + a_rho2 H+(1; K_rho2).
 """
 function lift(C_2, C_3)
     # Jacobian entries
@@ -432,20 +443,71 @@ function lift(C_2, C_3)
     f_rhoC = -C_2
     f_rhoR = C_3 / (f_RC * f_Crho)
 
-    # Hill amplitudes from the Hill derivatives at u = 1
+    # Hill amplitudes of the regulation, from the Hill derivatives at u = 1
     a_C    = f_Crho / dhill_inhibit(1.0, K_C)
     a_R    = f_RC   / dhill_activate(1.0, K_R)
     a_rho1 = f_rhoC / dhill_inhibit(1.0, K_rho1)
     a_rho2 = f_rhoR / dhill_activate(1.0, K_rho2)
 
-    # Basal rates that make u* = (1, 1, 1) a steady state
-    b_C   = g_C   - a_C    * hill_inhibit(1.0, K_C)
-    b_R   = g_R   - a_R    * hill_activate(1.0, K_R)
-    b_rho = g_rho - a_rho1 * hill_inhibit(1.0, K_rho1) - a_rho2 * hill_activate(1.0, K_rho2)
+    # Production by regulation at u = 1
+    P_C   = a_C    * hill_inhibit(1.0, K_C)
+    P_R   = a_R    * hill_activate(1.0, K_R)
+    P_rho = a_rho1 * hill_inhibit(1.0, K_rho1) + a_rho2 * hill_activate(1.0, K_rho2)
 
-    #In the correct for of p necessary for functions in cdc42_rac_rho.jl 
+    # Decay rates that keep concentrations positive
+    g_C   = smallest_decay_rate(f_CC,     P_C,   [a_C],            K_CC)
+    g_R   = smallest_decay_rate(f_RR,     P_R,   [a_R],            K_RR)
+    g_rho = smallest_decay_rate(f_rhorho, P_rho, [a_rho1, a_rho2], K_rhorho)
+
+    # Self-activation amplitudes (bounded autocatalysis) that give the diagonal f_ii
+    a_CC     = (f_CC     + g_C)   / dhill_self(1.0, K_CC)
+    a_RR     = (f_RR     + g_R)   / dhill_self(1.0, K_RR)
+    a_rhorho = (f_rhorho + g_rho) / dhill_self(1.0, K_rhorho)
+
+    # Basal rates that make u* = (1, 1, 1) a steady state
+    b_C   = g_C   - P_C   - a_CC     * hill_self(1.0, K_CC)
+    b_R   = g_R   - P_R   - a_RR     * hill_self(1.0, K_RR)
+    b_rho = g_rho - P_rho - a_rhorho * hill_self(1.0, K_rhorho)
+
+    #In the correct for of p necessary for functions in cdc42_rac_rho.jl
     return (a_C = a_C, a_R = a_R, a_rho1 = a_rho1, a_rho2 = a_rho2,
-            b_C = b_C, b_R = b_R, b_rho = b_rho)
+            a_CC = a_CC, a_RR = a_RR, a_rhorho = a_rhorho,
+            b_C = b_C, b_R = b_R, b_rho = b_rho,
+            g_C = g_C, g_R = g_R, g_rho = g_rho)
+end
+
+"""
+    smallest_decay_rate(f_ii, P_i, a_regulation, K_ii)
+
+The smallest decay rate g_i for species i that keeps every concentration
+positive, given the diagonal entry f_ii, the production by regulation at
+u = 1, P_i, and the Hill amplitudes of that regulation, `a_regulation`.
+
+Concentrations stay positive if, at u_i = 0, production is never negative
+(see the header of cdc42_rac_rho.jl):
+
+    b_i + N_i >= 0,     N_i = sum of min(a, 0) over `a_regulation`.
+
+With a_ii = (f_ii + g_i) / Hs'(1) and b_i = g_i - P_i - a_ii Hs(1), and
+writing rho_s = Hs(1) / Hs'(1), this is
+
+    g_i (1 - rho_s) >= P_i - N_i + rho_s f_ii.
+
+rho_s < 1 needs the self-activation to be cooperative (n_s >= 2), and then
+
+    g_i = (P_i - N_i + rho_s f_ii) / (1 - rho_s)
+
+is the smallest such rate.  We also need g_i >= -f_ii, so that
+a_ii >= 0 (self-activation, not self-inhibition).
+"""
+function smallest_decay_rate(f_ii, P_i, a_regulation, K_ii)
+    rho_s = hill_self(1.0, K_ii) / dhill_self(1.0, K_ii)
+    rho_s < 1 || error("self-activation must be cooperative: Hs(1) / Hs'(1) = $rho_s >= 1")
+
+    N_i = sum(min(a, 0.0) for a in a_regulation)
+    g_positive = (P_i - N_i + rho_s * f_ii) / (1 - rho_s)
+
+    return max(g_positive, -f_ii)
 end
 
 
@@ -581,8 +643,8 @@ end
     simulate_regions(n_points; N = 257, seed = 1)
 
 For every region from `all_regions`, sample `n_points` points (C_2, C_3),
-lift each to model rates, and solve the PDE to steady state from a noisy
-initial value around the homogeneous steady state.
+lift each to model rates, and integrate the PDE in time (`simulate`) from a
+noisy initial value around the homogeneous steady state.
 
 Returns a vector with one named tuple per point:
     kind       :steady_state, :hopf or :mixed (the region's label)
@@ -591,8 +653,11 @@ Returns a vector with one named tuple per point:
     C_2, C_3   the sampled point
     p          the lifted rates
     u_star     the homogeneous steady state
-    u_final    the final N x 3 matrix (columns C, R, rho)
-    reached    whether the solver reached a steady state
+    status     how the integration ended: :steady_state, :blow_up,
+               :not_settled or :failed (see `simulate`)
+    times      the times of the saved snapshots
+    snapshots  the N x 3 solution (columns C, R, rho) at each of `times`
+    u_final    the last snapshot
 """
 function simulate_regions(n_points; N = 257, seed = 1)
     rng = Xoshiro(seed)
@@ -603,11 +668,12 @@ function simulate_regions(n_points; N = 257, seed = 1)
             p       = lift(C_2, C_3)
             u_star  = homogeneous_state(p) #u* ≡ 1 by choice of p
             u_init  = noisy_initial_value(u_star, N; rng = rng)
-            u_final, reached = solve_to_steady_state(u_init, p)
+            run     = simulate(u_init, p)
 
             push!(results, (kind = r.kind, band_g = r.band_g, band_Q = r.band_Q,
-                            C_2 = C_2, C_3 = C_3,
-                            p = p, u_star = u_star, u_final = u_final, reached = reached))
+                            C_2 = C_2, C_3 = C_3, p = p, u_star = u_star,
+                            status = run.status, times = run.times, snapshots = run.snapshots,
+                            u_final = run.snapshots[end]))
         end
     end
     return results
@@ -618,8 +684,8 @@ end
     fourier_modes(result; k_max = 2 * κ_max)
 
 Cosine coefficients of the final state of a result from `simulate_regions`,
-for the modes k = 0..k_max.  Returns `nothing` if the solver did not reach
-a steady state.
+for the modes k = 0..k_max.  Returns `nothing` unless the integration
+ended in a steady state (status :steady_state).
 
 With no-flux boundaries on [0, L] = [0, pi], each species expands as
 
@@ -637,7 +703,7 @@ Returns a vector with one named tuple (k, C, R, rho) per mode, where C, R
 and rho are the coefficients a_k of each species.
 """
 function fourier_modes(result; k_max = 2 * κ_max)
-    result.reached || return nothing
+    result.status == :steady_state || return nothing
 
     u = result.u_final
     N = size(u, 1)
@@ -836,6 +902,12 @@ function plot_hopf_eigenvalues(results)
 end
 
 ## -------------------------- dominant mode of the final state --------
+# Colour of each dominant mode k = 1, 2, ... (mode 0, homogeneous, is black).
+# They avoid the blue, orange and green of the regions (`region_colour`)
+# and the grey of the points that did not reach a steady state.
+const mode_colour = [:red, :purple, :saddlebrown, :deeppink, :navy, :gold,
+                     :magenta, :olive, :maroon, :indigo, :cyan, :tan]
+
 """
     plot_dominant_modes(results)
 
@@ -858,13 +930,13 @@ function plot_dominant_modes(results)
 
     # points that did not reach a steady state
     not_reached = findall(isnothing, dominant)
-    scatter!(plt, [results[i].C_2 for i in not_reached], [results[i].C_3 for i in not_reached];
+    scatter!(plt, Float64[results[i].C_2 for i in not_reached], Float64[results[i].C_3 for i in not_reached];
              marker = :xcross, color = :grey, markersize = 4, label = "no steady state")
 
     # one colour per dominant mode; mode 0 is the homogeneous state
     reached = filter(!isnothing, dominant)
     for k in sort(unique([d.k for d in reached]))
-        colour = (k == 0) ? :black : palette(:tab10)[mod1(k, 10)]
+        colour = (k == 0) ? :black : mode_colour[mod1(k, length(mode_colour))]
         label  = (k == 0) ? "homogeneous" : "mode $k"
 
         single = [i for i in eachindex(results) if dominant[i] !== nothing &&
@@ -873,16 +945,16 @@ function plot_dominant_modes(results)
                   dominant[i].k == k && dominant[i].runner_up !== nothing]
 
         # filled: one mode dominates
-        scatter!(plt, [results[i].C_2 for i in single], [results[i].C_3 for i in single];
+        scatter!(plt, Float64[results[i].C_2 for i in single], Float64[results[i].C_3 for i in single];
                  color = colour, markersize = 4, markerstrokewidth = 0, label = label)
         # hollow: a runner-up mode of similar size
-        scatter!(plt, [results[i].C_2 for i in mixed], [results[i].C_3 for i in mixed];
-                 markercolor = :transparent, markerstrokecolor = colour,
+        scatter!(plt, Float64[results[i].C_2 for i in mixed], Float64[results[i].C_3 for i in mixed];
+                 markercolor = :white, markerstrokecolor = colour,
                  markerstrokewidth = 1.5, markersize = 4, label = "")
     end
 
     # legend entry explaining the hollow markers
-    scatter!(plt, [NaN], [NaN]; markercolor = :transparent, markerstrokecolor = :grey,
+    scatter!(plt, [NaN], [NaN]; markercolor = :white, markerstrokecolor = :grey,
              markerstrokewidth = 1.5, label = "hollow: runner-up mode")
     return plt
 end
@@ -891,7 +963,9 @@ end
 
 
 ## -------------------------- run -------------------------------------
+results = simulate_regions(5)
+
 plot_regions()
-plot_hopf_eigenvalues(check_regions(50))
-plot_dominant_modes(simulte_regions(50))
+plot_hopf_eigenvalues(check_regions(5))
+plot_dominant_modes(results)
 
