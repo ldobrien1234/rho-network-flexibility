@@ -24,24 +24,26 @@ using NonlinearSolve
 using DifferentialEquations
 
 # --------------------------- model constants -------------------------
-# Diffusion coefficients and decay rates chosen so that Hopf bands exist.
-# A Hopf band needs autocatalysis (some f_ii = -g_i > 0, so a negative
-# decay rate here) and C_2 < 0.  Values from the original cycle_atlas.jl,
-# which give steady-state bands only:
-#   d = (0.05, 0.5, 0.05),  g = (5.0, 1.0, 5.0)
+# Values from the original cycle_atlas.jl.  They give steady-state bands
+# with C_2 > 0 (mutual inhibition of Cdc42 and Rho) and no Hopf bands.
+# Values that do give Hopf bands, but only with C_2 < 0, are
+#   d = (1.8, 0.1, 0.15),  g = (4.0, -1.4, -0.5)
+#Baseline values with C_2 > 0
+#   d = (0.05, 0.5, 0.05), g = (5.0, 1.0, 5.0)
+# (negative decay rates for R and rho: net self-activation).
 
 # Diffusion coefficients
 const d_C   = 1.8
 const d_R   = 0.1
 const d_rho = 0.15
 
-# Linear decay rates (negative for R and rho: net self-activation)
+# Linear decay rates
 const g_C   = 4.0
 const g_R   = -1.4
 const g_rho = -0.5
 
 # Hill order (n in the equations above)
-const n_hill = 3
+const n_hill = 1
 
 # Hill thresholds
 const K_C    = 0.5

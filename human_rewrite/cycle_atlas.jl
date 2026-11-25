@@ -20,6 +20,8 @@ include("cdc42_rac_rho.jl")
 using LazySets
 using Random
 using Plots
+using ForwardDiff
+using LinearAlgebra
 
 # --------------------------- fixed parameters ------------------------
 # Diagonal of the Jacobian
@@ -41,7 +43,7 @@ const S_theta    = -(theta_CR + theta_Crho + theta_Rrho)
 
 # Max and minimum wave numbers to consider
 const κ_min = 1
-const κ_max = 4
+const κ_max = 6
 
 # Off-diagonal Jacobian entry Cdc42 -> Rac, held fixed in the lift
 const f_RC = 1.0
@@ -229,7 +231,49 @@ function intersect_no_steady_state_mode(region; k_min = κ_min, k_max = κ_max)
     return region
 end
 
+# --------------------------- no Hopf mode ----------------------------
+"""
+    intersect_no_hopf_mode(region; k_min = κ_min, k_max = κ_max)
 
+Intersection of `region` with {Q(-k^2) > 0 for k = k_min..k_max}.  This is
+the set P_g'(B) = P_g(B) minus every Hopf polygon P_Q(B') from the
+classification theorem, checked up to the mode k_max.  For a region that
+already has Q(0) > 0, this removes the points that lie in a Hopf polygon
+of a band within 1..k_max, since the modes with Q < 0 always form a band.
+
+At the mode mu = -k^2, write p_ij = d_i + d_j and
+
+    A_ij(mu) = f_ii + f_jj + mu p_ij,
+
+the trace of the (i, j) block of L(mu).  Then
+
+    Q(mu) = -A_CR(mu) A_Crho(mu) A_Rrho(mu) + A_Crho(mu) C_2 + C_3,
+
+so Q(mu) > 0 is the half-plane  -A_Crho(mu) C_2 - C_3 < -A_CR(mu) A_Crho(mu) A_Rrho(mu).
+At mu = 0 this is `Q0_positive`.
+
+Modes above k_max are not checked yet, so a point with Q < 0 only at
+higher modes is kept.
+
+Returns `nothing` if `region` is `nothing` or the intersection is empty or
+has zero area.
+"""
+function intersect_no_hopf_mode(region; k_min = κ_min, k_max = κ_max)
+    region === nothing && return nothing
+
+    for k in k_min:k_max
+        mu = -k^2
+        A_CR   = f_CC + f_RR     + mu * (d_C + d_R)
+        A_Crho = f_CC + f_rhorho + mu * (d_C + d_rho)
+        A_Rrho = f_RR + f_rhorho + mu * (d_R + d_rho)
+        Q_positive = HalfSpace([-A_Crho, -1.0], -A_CR * A_Crho * A_Rrho)
+        region = intersection(region, Q_positive)
+        isempty(region) && return nothing
+    end
+
+    area(region) > 0 || return nothing
+    return region
+end
 
 # --------------------------- all bands -------------------------------
 """
@@ -248,51 +292,106 @@ function all_bands(k_min = κ_min, k_max = κ_max)
     return bands
 end
 
-# --------------------------- band regions ----------------------------
-"""
-    band_regions(k_1, k_2)
+# --------------------------- the classification's sets ---------------
+# The sets of the classification theorem, each cut to the wedge where the
+# zero mode is stable.  A band B is a pair (k_1, k_2).  Each function
+# returns a LazySets set, or `nothing` if the set is empty or has zero area.
 
-The regions of the band k_1..k_2 that we sample from and plot, as a named
-tuple `(steady_state, hopf)`; each is a LazySets set, or `nothing` if empty.
-
-    steady_state:  steady-state polygon, cut to a stable zero mode
-                   (`intersect_zero_mode_stable`)
-    hopf:          Hopf polygon, cut to a stable zero mode and to g < 0 at
-                   every mode (`intersect_no_steady_state_mode`), which
-                   removes the points that lie in a steady-state polygon,
-                   where the steady-state behaviour dominates
 """
-function band_regions(k_1, k_2)
-    region_A = intersect_zero_mode_stable(polygon_steady_state(k_1, k_2))
-    region_B = intersect_no_steady_state_mode(intersect_zero_mode_stable(polygon_hopf(k_1, k_2)))
-    return (steady_state = region_A, hopf = region_B)
+    steady_state_region(B)
+
+The set P_g'(B): the steady-state polygon of the band B, without the
+points that lie in any Hopf polygon.  For every mode in B, L has exactly
+one eigenvalue with positive real part, which is real; every other mode
+is stable.
+"""
+function steady_state_region(B)
+    polygon = polygon_steady_state(B...)
+    return intersect_no_hopf_mode(intersect_zero_mode_stable(polygon))
 end
 
-# --------------------------- sampling the band regions ---------------
+"""
+    hopf_region(B)
+
+The set P_Q'(B): the Hopf polygon of the band B, without the points that
+lie in any steady-state polygon.  For every mode in B, L has exactly two
+eigenvalues with positive real part; every other mode is stable.
+"""
+function hopf_region(B)
+    polygon = polygon_hopf(B...)
+    return intersect_no_steady_state_mode(intersect_zero_mode_stable(polygon))
+end
 
 """
-    sample_band(k_1, k_2, n_points; seed = 1)
+    mixed_region(B, B̄)
 
-Uniform random points (C_2, C_3) in the band k_1..k_2's steady-state and
-Hopf regions (`band_regions`).  Returns a named tuple `(steady_state, hopf)`
-of vectors of [C_2, C_3]; a vector is empty when its region is.
+The set P_gQ(B, B̄): the overlap of the steady-state polygon of the band B
+and the Hopf polygon of the band B̄.  For every mode in B, L has exactly
+one eigenvalue with positive real part, which is real; for every mode in
+B̄ but not in B, exactly two; every other mode is stable.
+"""
+function mixed_region(B, B̄)
+    polygon_g = polygon_steady_state(B...)
+    polygon_Q = polygon_hopf(B̄...)
+    (polygon_g === nothing || polygon_Q === nothing) && return nothing
+
+    overlap = intersection(polygon_g, polygon_Q)
+    isempty(overlap) && return nothing
+    return intersect_zero_mode_stable(overlap)
+end
+
+"""
+    all_regions()
+
+Every non-empty set of the classification theorem, over all bands from
+`all_bands`, as a vector of named tuples
+
+    kind      :steady_state for P_g'(B), :hopf for P_Q'(B), :mixed for P_gQ(B, B̄)
+    band_g    the band B of the steady-state polygon (`nothing` for :hopf)
+    band_Q    the band of the Hopf polygon: B for :hopf, B̄ for :mixed
+              (`nothing` for :steady_state)
+    region    the LazySets set
+
+By the theorem these sets are mutually disjoint.
+"""
+function all_regions()
+    regions = []
+    for B in all_bands() #κ_min and κ_max are specified constants at top of file
+        region = steady_state_region(B)
+        if region !== nothing
+            push!(regions, (kind = :steady_state, band_g = B, band_Q = nothing, region = region))
+        end
+
+        region = hopf_region(B)
+        if region !== nothing
+            push!(regions, (kind = :hopf, band_g = nothing, band_Q = B, region = region))
+        end
+
+        for B̄ in all_bands()
+            region = mixed_region(B, B̄)
+            if region !== nothing
+                push!(regions, (kind = :mixed, band_g = B, band_Q = B̄, region = region))
+            end
+        end
+    end
+    return regions
+end
+
+# --------------------------- sampling the regions --------------------
+"""
+    sample_region(r, n_points; rng)
+
+`n_points` uniform random points (C_2, C_3) in the region `r.region` of a
+labelled region `r` from `all_regions`, as a vector of [C_2, C_3].
 
 Points are drawn uniformly from the region's bounding box and kept if
 they lie in the region (LazySets' RejectionSampler).  LazySets' default
 sampler is not used: it can switch to a non-uniform method that ignores
 the seed.
 """
-function sample_band(k_1, k_2, n_points; seed = 1)
-    rng = Xoshiro(seed)
-
-    region_A, region_B = band_regions(k_1, k_2)
-
-    points_A = region_A === nothing ? Vector{Float64}[] :
-        LazySets.sample(region_A, n_points; sampler = LazySets.RejectionSampler(region_A), rng = rng)
-    points_B = region_B === nothing ? Vector{Float64}[] :
-        LazySets.sample(region_B, n_points; sampler = LazySets.RejectionSampler(region_B), rng = rng)
-
-    return (steady_state = points_A, hopf = points_B)
+function sample_region(r, n_points; rng)
+    sampler = LazySets.RejectionSampler(r.region)
+    return LazySets.sample(r.region, n_points; sampler = sampler, rng = rng)
 end
 
 # --------------------------- lift to model rates ---------------------
@@ -304,9 +403,15 @@ state whose Jacobian has the cycle values (C_2, C_3).
 
 We set the off-diagonal entries of the Jacobian according to:
 
-    f_Crho = f_rhoC = -sqrt(C_2)      (mutual inhibition, so C_2 = f_Crho f_rhoC)
+    f_Crho = -1                       (Rho -| Cdc42)
+    f_rhoC = -C_2                     (Cdc42 -| Rho, so C_2 = f_Crho f_rhoC)
     f_RC   = 1                        (fixed constant)
-    f_rhoR = C_3 / (f_RC f_Crho)      (so C_3 = f_RC f_rhoR f_Crho)
+    f_rhoR = C_3 / (f_RC f_Crho)      (so C_3 = f_RC f_rhoR f_Crho, i.e. f_rhoR = -C_3)
+
+This matches the signs assumed in cdc42_rac_rho.jl (Cdc42 and Rho inhibit
+each other, Rac activates Rho) when C_2 > 0 and C_3 < 0.  For other signs
+a Hill amplitude a is negative, which turns that Hill term's inhibition
+into activation or the reverse.
 
 We need to choose constants so that the above is true at u = 1.
 Looking at the model equation, one choice is the following.
@@ -323,8 +428,8 @@ b_i do not change the Jacobian; they are chosen so that F(1, 1, 1) = 0:
 """
 function lift(C_2, C_3)
     # Jacobian entries
-    f_Crho = -sqrt(C_2)
-    f_rhoC = -sqrt(C_2)
+    f_Crho = -1.0
+    f_rhoC = -C_2
     f_rhoR = C_3 / (f_RC * f_Crho)
 
     # Hill amplitudes from the Hill derivatives at u = 1
@@ -344,7 +449,7 @@ function lift(C_2, C_3)
 end
 
 
-# --------------------------- simulating the bands --------------------
+# --------------------------- simulating the regions ------------------
 """
     noisy_initial_value(u_star, N; amplitude = 0.01, rng)
 
@@ -362,89 +467,124 @@ function noisy_initial_value(u_star, N; amplitude = 0.01, rng)
 end
 
 """
-    simulate_bands(n_points; N = 257, seed = 1)
+    simulate_regions(n_points; N = 257, seed = 1)
 
-For every band, sample `n_points` points (C_2, C_3) from its steady-state
-and Hopf regions, lift each to model rates, and solve the PDE to steady
-state from a noisy initial value around the homogeneous steady state.
+For every region from `all_regions`, sample `n_points` points (C_2, C_3),
+lift each to model rates, and solve the PDE to steady state from a noisy
+initial value around the homogeneous steady state.
 
 Returns a vector with one named tuple per point:
-    band       (k_1, k_2)
-    theorem    :steady_state or :hopf
+    kind       :steady_state, :hopf or :mixed (the region's label)
+    band_g     the band of the steady-state polygon, or `nothing`
+    band_Q     the band of the Hopf polygon, or `nothing`
     C_2, C_3   the sampled point
     p          the lifted rates
     u_star     the homogeneous steady state
     u_final    the final N x 3 matrix (columns C, R, rho)
     reached    whether the solver reached a steady state
 """
-function simulate_bands(n_points; N = 257, seed = 1)
+function simulate_regions(n_points; N = 257, seed = 1)
     rng = Xoshiro(seed)
     results = []
 
-    for (k_1, k_2) in all_bands()
-        points = sample_band(k_1, k_2, n_points; seed = seed)
+    for r in all_regions()
+        for (C_2, C_3) in sample_region(r, n_points; rng = rng)
+            p       = lift(C_2, C_3)
+            u_star  = homogeneous_state(p) #u* ≡ 1 by choice of p
+            u_init  = noisy_initial_value(u_star, N; rng = rng)
+            u_final, reached = solve_to_steady_state(u_init, p)
 
-        for theorem in (:steady_state, :hopf)
-            for (C_2, C_3) in points[theorem]
-                p       = lift(C_2, C_3)
-                u_star  = homogeneous_state(p) #u* ≡ 1 by choice of p
-                u_init  = noisy_initial_value(u_star, N; rng = rng)
-                u_final, reached = solve_to_steady_state(u_init, p)
-
-                push!(results, (band = (k_1, k_2), theorem = theorem, C_2 = C_2, C_3 = C_3,
-                                p = p, u_star = u_star, u_final = u_final, reached = reached))
-            end
+            push!(results, (kind = r.kind, band_g = r.band_g, band_Q = r.band_Q,
+                            C_2 = C_2, C_3 = C_3,
+                            p = p, u_star = u_star, u_final = u_final, reached = reached))
         end
     end
     return results
 end
 
+# --------------------------- check (1): unstable modes ---------------
+"""
+    unstable_modes(p, u_star; k_max = 2 * κ_max)
 
+The modes k = 0..k_max that are unstable at the homogeneous steady state
+u*: those for which J - k^2 D has an eigenvalue with positive real part.
+Here J is the Jacobian of `reaction` at u* and D = diag(d_C, d_R, d_rho).
+Modes beyond κ_max are included so that a stray unstable mode would show.
+
+J is computed by automatic differentiation of `reaction` (ForwardDiff),
+not from the formulas in `lift`, so this also checks the lift.
+
+Returns a vector with one named tuple (k, eigenvalue) per unstable mode,
+where `eigenvalue` is the one with the largest real part.  It is real for
+a steady-state instability and complex for a Hopf instability.
+"""
+function unstable_modes(p, u_star; k_max = 2 * κ_max)
+    J = ForwardDiff.jacobian(u -> reaction(u, p), u_star)
+    D = Diagonal([d_C, d_R, d_rho])
+
+    unstable = []
+    for k in 0:k_max
+        eigenvalues = eigvals(J - k^2 * D)
+        leading     = eigenvalues[argmax(real.(eigenvalues))]
+        if real(leading) > 0
+            push!(unstable, (k = k, eigenvalue = leading))
+        end
+    end
+    return unstable
+end
 
 # --------------------------- plots -----------------------------------
 """
-    label_region!(plt, region, k_1, k_2)
+    region_label(r)
 
-Write the band "k_1..k_2" at the centre of `region` (the average of its
-vertices, which lies inside a convex polygon).
+Text label for a region `r` from `all_regions`: its band "k_1..k_2" for a
+steady-state or Hopf region, and "g k_1..k_2 / Q k̄_1..k̄_2" (the bands of
+the steady-state and Hopf polygons) for a mixed region.
 """
-function label_region!(plt, region, k_1, k_2)
+function region_label(r)
+    band_text(B) = "$(B[1])..$(B[2])"
+    r.kind == :steady_state && return band_text(r.band_g)
+    r.kind == :hopf         && return band_text(r.band_Q)
+    return "g " * band_text(r.band_g) * " / Q " * band_text(r.band_Q)
+end
+
+"""
+    label_region!(plt, region, label)
+
+Write `label` at the centre of `region` (the average of its vertices,
+which lies inside a convex polygon).
+"""
+function label_region!(plt, region, label)
     vertices = vertices_list(region)
     centre   = sum(vertices) / length(vertices)
-    annotate!(plt, centre[1], centre[2], text("$k_1..$k_2", 8))
+    annotate!(plt, centre[1], centre[2], text(label, 8))
 end
+
+# Colour and legend entry of each kind of region
+const region_colour = Dict(:steady_state => :steelblue, :hopf => :darkorange, :mixed => :seagreen)
+const region_legend = Dict(:steady_state => "steady state", :hopf => "Hopf", :mixed => "mixed")
 
 """
     plot_regions()
 
-All bands' steady-state regions in one colour and Hopf regions in another,
-in the (C_2, C_3) plane (the regions from `band_regions`), each labelled
-with its band k_1..k_2, together with the edges of the wedge where the zero
-mode is stable: the steady-state crossing g(0) = 0 (solid) and the Hopf
-crossing Q(0) = 0 (dotted).
+All regions from `all_regions` in the (C_2, C_3) plane, coloured by kind
+(steady state, Hopf, mixed) and labelled with their bands (`region_label`),
+together with the edges of the wedge where the zero mode is stable: the
+steady-state crossing g(0) = 0 (solid) and the Hopf crossing Q(0) = 0
+(dotted).
 """
 function plot_regions()
-    plt = plot(xlabel = "C₂", ylabel = "C₃", title = "Band regions in cycle space",
+    plt = plot(xlabel = "C₂", ylabel = "C₃", title = "Regions in cycle space",
                legend = :outerright, size = (900, 500), left_margin = 5Plots.mm)
 
-    # label each colour once in the legend
-    steady_state_labelled = false
-    hopf_labelled         = false
+    # label each kind once in the legend
+    labelled = Set{Symbol}()
 
-    for (k_1, k_2) in all_bands()
-        region_A, region_B = band_regions(k_1, k_2)
-        if region_A !== nothing
-            plot!(plt, region_A; color = :steelblue, alpha = 0.5,
-                  label = steady_state_labelled ? "" : "steady state")
-            label_region!(plt, region_A, k_1, k_2)
-            steady_state_labelled = true
-        end
-        if region_B !== nothing
-            plot!(plt, region_B; color = :darkorange, alpha = 0.5,
-                  label = hopf_labelled ? "" : "Hopf")
-            label_region!(plt, region_B, k_1, k_2)
-            hopf_labelled = true
-        end
+    for r in all_regions()
+        plot!(plt, r.region; color = region_colour[r.kind], alpha = 0.5,
+              label = r.kind in labelled ? "" : region_legend[r.kind])
+        label_region!(plt, r.region, region_label(r))
+        push!(labelled, r.kind)
     end
 
     # widen the view by 20% on each side, so the wedge edges show beyond the regions
@@ -459,6 +599,8 @@ function plot_regions()
           linestyle = :dot, label = "Q(0) = 0  (Hopf crossing)")
     return plt
 end
+
+
 
 
 plot_regions()
