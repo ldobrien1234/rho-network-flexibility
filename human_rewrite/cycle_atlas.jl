@@ -23,7 +23,7 @@ using Plots
 using ForwardDiff
 using LinearAlgebra
 
-# --------------------------- fixed parameters ------------------------
+## -------------------------- fixed parameters ------------------------
 # Diagonal of the Jacobian
 const f_CC     = -g_C
 const f_RR     = -g_R
@@ -48,7 +48,7 @@ const κ_max = 6
 # Off-diagonal Jacobian entry Cdc42 -> Rac, held fixed in the lift
 const f_RC = 1.0
 
-# --------------------------- vertex pairs ----------------------------
+## -------------------------- vertex pairs ----------------------------
 """
     band_modes(k_1, k_2)
 
@@ -95,7 +95,7 @@ function vertex_pairs(S, m, sigma_1, sigma_n, M)
     end
 end
 
-# --------------------------- band polygons in (C_2, C_3) --------------
+## -------------------------- band polygons in (C_2, C_3) --------------
 """
     polygon_steady_state(k_1, k_2)
 
@@ -160,7 +160,7 @@ function polygon_hopf(k_1, k_2)
     return polygon
 end
 
-# --------------------------- stable zero mode ------------------------
+## -------------------------- stable zero mode ------------------------
 # The zero mode is stable on {g(0) < 0} ∩ {Q(0) > 0}, the "wedge".  Both
 # conditions are half-planes in (C_2, C_3).  A LazySets HalfSpace(a, b) is
 # the set a . (C_2, C_3) <= b.
@@ -194,7 +194,7 @@ function intersect_zero_mode_stable(polygon)
     return region
 end
 
-# --------------------------- no steady-state mode --------------------
+## -------------------------- no steady-state mode --------------------
 """
     intersect_no_steady_state_mode(region; k_min = κ_min, k_max = κ_max)
 
@@ -231,7 +231,7 @@ function intersect_no_steady_state_mode(region; k_min = κ_min, k_max = κ_max)
     return region
 end
 
-# --------------------------- no Hopf mode ----------------------------
+## -------------------------- no Hopf mode ----------------------------
 """
     intersect_no_hopf_mode(region; k_min = κ_min, k_max = κ_max)
 
@@ -275,7 +275,7 @@ function intersect_no_hopf_mode(region; k_min = κ_min, k_max = κ_max)
     return region
 end
 
-# --------------------------- all bands -------------------------------
+## -------------------------- all bands -------------------------------
 """
     all_bands(k_min = κ_min, k_max = κ_max)
 
@@ -292,7 +292,7 @@ function all_bands(k_min = κ_min, k_max = κ_max)
     return bands
 end
 
-# --------------------------- the classification's sets ---------------
+## -------------------------- the classification's sets ---------------
 # The sets of the classification theorem, each cut to the wedge where the
 # zero mode is stable.  A band B is a pair (k_1, k_2).  Each function
 # returns a LazySets set, or `nothing` if the set is empty or has zero area.
@@ -377,7 +377,7 @@ function all_regions()
     return regions
 end
 
-# --------------------------- sampling the regions --------------------
+## -------------------------- sampling the regions --------------------
 """
     sample_region(r, n_points; rng)
 
@@ -394,7 +394,7 @@ function sample_region(r, n_points; rng)
     return LazySets.sample(r.region, n_points; sampler = sampler, rng = rng)
 end
 
-# --------------------------- lift to model rates ---------------------
+## -------------------------- lift to model rates ---------------------
 """
     lift(C_2, C_3)
 
@@ -449,7 +449,118 @@ function lift(C_2, C_3)
 end
 
 
-# --------------------------- simulating the regions ------------------
+## -------------------------- check (1): unstable modes ---------------
+"""
+    unstable_modes(p, u_star; k_max = 2 * κ_max)
+
+The modes k = 0..k_max that are unstable at the homogeneous steady state
+u*: those for which J - k^2 D has an eigenvalue with positive real part.
+Here J is the Jacobian of `reaction` at u* and D = diag(d_C, d_R, d_rho).
+Modes beyond κ_max are included so that a stray unstable mode would show.
+
+J is computed by automatic differentiation of `reaction` (ForwardDiff),
+not from the formulas in `lift`, so this also checks the lift.
+
+Returns a vector with one named tuple per unstable mode:
+    k            the mode
+    n_positive   the number of eigenvalues with positive real part
+    n_complex    how many of those have nonzero imaginary part
+    eigenvalues  the eigenvalues with positive real part
+"""
+function unstable_modes(p, u_star; k_max = 2 * κ_max)
+    J = ForwardDiff.jacobian(u -> reaction(u, p), u_star)
+    D = Diagonal([d_C, d_R, d_rho])
+
+    unstable = []
+    for k in 0:k_max
+        positive = filter(λ -> real(λ) > 0, eigvals(J - k^2 * D))
+        if !isempty(positive)
+            push!(unstable, (k = k, n_positive = length(positive),
+                             n_complex = count(λ -> imag(λ) != 0, positive),
+                             eigenvalues = positive))
+        end
+    end
+    return unstable
+end
+
+"""
+    predicted_n_positive(r, k)
+
+The number of eigenvalues of L(-k^2) with positive real part that the
+classification theorem predicts at mode k, for a point in the region `r`
+from `all_regions`:
+
+    1   if k is in the steady-state band band_g
+    2   if k is in the Hopf band band_Q but not in band_g
+    0   otherwise (the mode is stable)
+"""
+function predicted_n_positive(r, k)
+    in_band(B) = B !== nothing && B[1] <= k <= B[2]
+    in_band(r.band_g) && return 1
+    in_band(r.band_Q) && return 2
+    return 0
+end
+
+"""
+    stability_matches(r, modes; k_max = 2 * κ_max)
+
+Whether the unstable modes `modes` (from `unstable_modes`) of a point in
+the region `r` match the theorem: for every mode k = 0..k_max, the number
+of eigenvalues with positive real part equals `predicted_n_positive`.
+"""
+function stability_matches(r, modes; k_max = 2 * κ_max)
+    observed = Dict(mode.k => mode.n_positive for mode in modes)
+    for k in 0:k_max
+        get(observed, k, 0) == predicted_n_positive(r, k) || return false
+    end
+    return true
+end
+
+"""
+    check_regions(n_points; seed = 1)
+
+For every region from `all_regions`, sample `n_points` points (C_2, C_3),
+lift each to model rates, and compare the unstable modes at the
+homogeneous steady state with the theorem's prediction for the region.
+No PDE is solved.
+
+Returns a vector with one named tuple per point:
+    kind       :steady_state, :hopf or :mixed (the region's label)
+    band_g     the band of the steady-state polygon, or `nothing`
+    band_Q     the band of the Hopf polygon, or `nothing`
+    C_2, C_3   the sampled point
+    p          the lifted rates
+    modes      the unstable modes at u*, from `unstable_modes`
+    matches    whether `modes` match the theorem (`stability_matches`)
+"""
+function check_regions(n_points; seed = 1)
+    rng = Xoshiro(seed)
+    results = []
+
+    for r in all_regions()
+        for (C_2, C_3) in sample_region(r, n_points; rng = rng)
+            p       = lift(C_2, C_3)
+            u_star  = homogeneous_state(p) #u* ≡ 1 by choice of p
+            modes   = unstable_modes(p, u_star)
+            matches = stability_matches(r, modes)
+
+            push!(results, (kind = r.kind, band_g = r.band_g, band_Q = r.band_Q,
+                            C_2 = C_2, C_3 = C_3,
+                            p = p, modes = modes, matches = matches))
+        end
+    end
+    return results
+end
+
+"""
+    proportion_matching(results)
+
+The proportion of the results from `check_regions` whose stability
+matches the theorem.
+"""
+proportion_matching(results) = count(result -> result.matches, results) / length(results)
+
+## -------------------------- simulating the regions ------------------
 """
     noisy_initial_value(u_star, N; amplitude = 0.01, rng)
 
@@ -502,38 +613,95 @@ function simulate_regions(n_points; N = 257, seed = 1)
     return results
 end
 
-# --------------------------- check (1): unstable modes ---------------
+## -------------------------- check (2): Fourier modes of the final state
 """
-    unstable_modes(p, u_star; k_max = 2 * κ_max)
+    fourier_modes(result; k_max = 2 * κ_max)
 
-The modes k = 0..k_max that are unstable at the homogeneous steady state
-u*: those for which J - k^2 D has an eigenvalue with positive real part.
-Here J is the Jacobian of `reaction` at u* and D = diag(d_C, d_R, d_rho).
-Modes beyond κ_max are included so that a stray unstable mode would show.
+Cosine coefficients of the final state of a result from `simulate_regions`,
+for the modes k = 0..k_max.  Returns `nothing` if the solver did not reach
+a steady state.
 
-J is computed by automatic differentiation of `reaction` (ForwardDiff),
-not from the formulas in `lift`, so this also checks the lift.
+With no-flux boundaries on [0, L] = [0, pi], each species expands as
 
-Returns a vector with one named tuple (k, eigenvalue) per unstable mode,
-where `eigenvalue` is the one with the largest real part.  It is real for
-a steady-state instability and complex for a Hopf instability.
+    u(x) = a_0 + sum over k >= 1 of a_k cos(k x),
+
+where
+
+    a_0 = (1 / L) ∫ u(x) dx              (the mean)
+    a_k = (2 / L) ∫ u(x) cos(k x) dx     (k >= 1).
+
+The integrals are computed with the trapezoidal rule on the solver's grid
+of N equally spaced points from 0 to L.
+
+Returns a vector with one named tuple (k, C, R, rho) per mode, where C, R
+and rho are the coefficients a_k of each species.
 """
-function unstable_modes(p, u_star; k_max = 2 * κ_max)
-    J = ForwardDiff.jacobian(u -> reaction(u, p), u_star)
-    D = Diagonal([d_C, d_R, d_rho])
+function fourier_modes(result; k_max = 2 * κ_max)
+    result.reached || return nothing
 
-    unstable = []
+    u = result.u_final
+    N = size(u, 1)
+    x = range(0, L; length = N)
+    h = L / (N - 1)
+
+    # trapezoidal rule: weight h, halved at the two end points
+    weights = fill(h, N)
+    weights[1]   = h / 2
+    weights[end] = h / 2
+    integral(v) = sum(weights .* v)
+
+    modes = []
     for k in 0:k_max
-        eigenvalues = eigvals(J - k^2 * D)
-        leading     = eigenvalues[argmax(real.(eigenvalues))]
-        if real(leading) > 0
-            push!(unstable, (k = k, eigenvalue = leading))
-        end
+        scale = (k == 0) ? 1 / L : 2 / L
+        a_k   = [scale * integral(u[:, species] .* cos.(k .* x)) for species in 1:3]
+        push!(modes, (k = k, C = a_k[1], R = a_k[2], rho = a_k[3]))
     end
-    return unstable
+    return modes
 end
 
-# --------------------------- plots -----------------------------------
+"""
+    dominant_mode(result; k_max = 2 * κ_max, tol = 1e-4, runner_up_ratio = 0.5)
+
+The dominant Fourier mode of the final state of a result from
+`simulate_regions`: the mode k = 1..k_max with the largest amplitude
+
+    A_k = sqrt(a_k(C)^2 + a_k(R)^2 + a_k(rho)^2),
+
+combining the three species' coefficients from `fourier_modes`.  The
+species are on comparable scales because the lift puts u* at (1, 1, 1).
+
+Returns a named tuple
+    k           the dominant mode, or 0 if every A_k is below `tol`
+                (the final state is homogeneous)
+    runner_up   the mode with the second largest amplitude, if that
+                amplitude is at least `runner_up_ratio` times the largest;
+                otherwise `nothing`
+
+or `nothing` if the solver did not reach a steady state.
+"""
+function dominant_mode(result; k_max = 2 * κ_max, tol = 1e-4, runner_up_ratio = 0.5)
+    modes = fourier_modes(result; k_max = k_max)
+    modes === nothing && return nothing
+
+    # leave out k = 0, which is the mean of each species
+    patterned  = filter(mode -> mode.k >= 1, modes)
+    amplitudes = [sqrt(mode.C^2 + mode.R^2 + mode.rho^2) for mode in patterned]
+
+    maximum(amplitudes) < tol && return (k = 0, runner_up = nothing)
+
+    # modes sorted from largest to smallest amplitude
+    order  = sortperm(amplitudes; rev = true)
+    first  = order[1]
+    second = order[2]
+
+    k         = patterned[first].k
+    # runner_up is the second largest mode if it is at least 0.5 (default) times
+    # the largest. Otherwise, it's nothing.
+    runner_up = amplitudes[second] >= runner_up_ratio * amplitudes[first] ? patterned[second].k : nothing
+    return (k = k, runner_up = runner_up)
+end
+
+## -------------------------- plots -----------------------------------
 """
     region_label(r)
 
@@ -572,8 +740,11 @@ All regions from `all_regions` in the (C_2, C_3) plane, coloured by kind
 together with the edges of the wedge where the zero mode is stable: the
 steady-state crossing g(0) = 0 (solid) and the Hopf crossing Q(0) = 0
 (dotted).
+
+With `labels = false` the bands are not written on the regions, which is
+useful when zooming in: labels outside the view are still drawn.
 """
-function plot_regions()
+function plot_regions(; labels = true)
     plt = plot(xlabel = "C₂", ylabel = "C₃", title = "Regions in cycle space",
                legend = :outerright, size = (900, 500), left_margin = 5Plots.mm)
 
@@ -583,7 +754,7 @@ function plot_regions()
     for r in all_regions()
         plot!(plt, r.region; color = region_colour[r.kind], alpha = 0.5,
               label = r.kind in labelled ? "" : region_legend[r.kind])
-        label_region!(plt, r.region, region_label(r))
+        labels && label_region!(plt, r.region, region_label(r))
         push!(labelled, r.kind)
     end
 
@@ -600,4 +771,127 @@ function plot_regions()
     return plt
 end
 
+## -------------------------- real or complex Hopf eigenvalues --------
+"""
+    plot_hopf_eigenvalues(results)
+
+One panel per Hopf region whose band is a single mode k..k.  Each panel is
+the plot of all regions (`plot_regions`) with the sampled points of that
+Hopf region, coloured by whether their two unstable eigenvalues at mode k
+are a complex pair or two real eigenvalues.
+
+`results` is the output of `check_regions`: one named tuple per sampled
+point, with the region's kind and bands, the point (C_2, C_3) and its
+unstable `modes` from `unstable_modes`.  The colour is read from
+`n_complex` of the mode k.  The output of `simulate_regions` does not work
+here, since it has no `modes`.
+
+    results = check_regions(n_points)
+    plot_hopf_eigenvalues(results)
+"""
+function plot_hopf_eigenvalues(results)
+    panels = []
+
+    for r in all_regions()
+        # only Hopf regions whose band is a single mode
+        r.kind == :hopf || continue
+        k_1, k_2 = r.band_Q
+        k_1 == k_2 || continue
+        k = k_1
+
+        plt = plot_regions(labels = false)
+        title!(plt, "Hopf region $k..$k")
+
+        # sampled points of this region, split by the eigenvalues at mode k
+        complex_C_2, complex_C_3 = Float64[], Float64[]
+        real_C_2,    real_C_3    = Float64[], Float64[]
+        for result in results
+            (result.kind == :hopf && result.band_Q == r.band_Q) || continue
+            mode = only(filter(mode -> mode.k == k, result.modes))
+            if mode.n_complex == 2
+                push!(complex_C_2, result.C_2)
+                push!(complex_C_3, result.C_3)
+            else
+                push!(real_C_2, result.C_2)
+                push!(real_C_3, result.C_3)
+            end
+        end
+        scatter!(plt, complex_C_2, complex_C_3; color = :purple, markersize = 3,
+                 markerstrokewidth = 0, label = "complex pair")
+        scatter!(plt, real_C_2, real_C_3; color = :red, markersize = 3,
+                 markerstrokewidth = 0, label = "two real")
+
+        # zoom on the sampled points, with 20% of their spread on each side
+        all_C_2 = vcat(complex_C_2, real_C_2)
+        all_C_3 = vcat(complex_C_3, real_C_3)
+        C_2_low, C_2_high = extrema(all_C_2)
+        C_3_low, C_3_high = extrema(all_C_3)
+        xlims!(plt, C_2_low - 0.2 * (C_2_high - C_2_low), C_2_high + 0.2 * (C_2_high - C_2_low))
+        ylims!(plt, C_3_low - 0.2 * (C_3_high - C_3_low), C_3_high + 0.2 * (C_3_high - C_3_low))
+
+        push!(panels, plt)
+    end
+
+    return plot(panels...; layout = (length(panels), 1), size = (900, 500 * length(panels)))
+end
+
+## -------------------------- dominant mode of the final state --------
+"""
+    plot_dominant_modes(results)
+
+The plot of all regions (`plot_regions`) with the sampled points from
+`simulate_regions`, coloured by the dominant Fourier mode of their final
+state (`dominant_mode`), with one legend entry per mode:
+
+  - filled marker   one mode dominates
+  - hollow marker   there is a runner-up mode of similar size
+  - grey cross      the solver did not reach a steady state
+
+    results = simulate_regions(n_points)
+    plot_dominant_modes(results)
+"""
+function plot_dominant_modes(results)
+    plt = plot_regions()
+    title!(plt, "Dominant mode of the final state")
+
+    dominant = [dominant_mode(result) for result in results]
+
+    # points that did not reach a steady state
+    not_reached = findall(isnothing, dominant)
+    scatter!(plt, [results[i].C_2 for i in not_reached], [results[i].C_3 for i in not_reached];
+             marker = :xcross, color = :grey, markersize = 4, label = "no steady state")
+
+    # one colour per dominant mode; mode 0 is the homogeneous state
+    reached = filter(!isnothing, dominant)
+    for k in sort(unique([d.k for d in reached]))
+        colour = (k == 0) ? :black : palette(:tab10)[mod1(k, 10)]
+        label  = (k == 0) ? "homogeneous" : "mode $k"
+
+        single = [i for i in eachindex(results) if dominant[i] !== nothing &&
+                  dominant[i].k == k && dominant[i].runner_up === nothing]
+        mixed  = [i for i in eachindex(results) if dominant[i] !== nothing &&
+                  dominant[i].k == k && dominant[i].runner_up !== nothing]
+
+        # filled: one mode dominates
+        scatter!(plt, [results[i].C_2 for i in single], [results[i].C_3 for i in single];
+                 color = colour, markersize = 4, markerstrokewidth = 0, label = label)
+        # hollow: a runner-up mode of similar size
+        scatter!(plt, [results[i].C_2 for i in mixed], [results[i].C_3 for i in mixed];
+                 markercolor = :transparent, markerstrokecolor = colour,
+                 markerstrokewidth = 1.5, markersize = 4, label = "")
+    end
+
+    # legend entry explaining the hollow markers
+    scatter!(plt, [NaN], [NaN]; markercolor = :transparent, markerstrokecolor = :grey,
+             markerstrokewidth = 1.5, label = "hollow: runner-up mode")
+    return plt
+end
+
+
+
+
+## -------------------------- run -------------------------------------
+plot_regions()
+plot_hopf_eigenvalues(check_regions(50))
+plot_dominant_modes(simulte_regions(50))
 
